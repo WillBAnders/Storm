@@ -3,6 +3,9 @@ package dev.willbanders.storm.config;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import dev.willbanders.storm.serializer.Deserializer;
+import dev.willbanders.storm.serializer.SerializationException;
+import dev.willbanders.storm.serializer.Serializer;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -354,6 +357,61 @@ public final class Node {
         type = Type.UNDEFINED;
         value = null;
         return this;
+    }
+
+    /**
+     * Returns a node located at the given path relative to this node. The path
+     * is split on {@code .}, as in {@code first.second.third}. Array indices
+     * cannot be represented with this method.
+     *
+     * @see #resolve(Object...)
+     */
+    public Node get(String path) {
+        return resolve(path.split("\\."));
+    }
+
+    /**
+     * Deserializes a value from this node using the given deserializer.
+     *
+     * @throws SerializationException if the node could not be deserialized
+     * @see Deserializer#deserialize(Node)
+     */
+    public <T> T get(Deserializer<T> deserializer) throws SerializationException {
+        return deserializer.deserialize(this);
+    }
+
+    /**
+     * Deserializes a value from the node located at the given path relative
+     * to this node using the given serializer.
+     *
+     * @throws SerializationException if the node could not be deserialized
+     * @see #get(String)
+     * @see #get(Deserializer)
+     */
+    public <T> T get(String path, Deserializer<T> deserializer) throws SerializationException {
+        return get(path).get(deserializer);
+    }
+
+    /**
+     * Serializes the value to this node using the given serializer.
+     *
+     * @throws SerializationException if the node could not be serialized
+     * @see Serializer#serialize(Node, T)
+     */
+    public <T> void set(T value, Serializer<T> serializer) throws SerializationException {
+        serializer.serialize(this, value);
+    }
+
+    /**
+     * Serializes the value to the node located at the given path relative to
+     * this node using the given serializer.
+     *
+     * @throws SerializationException if the node could not be serialized
+     * @see #get(String)
+     * @see #set(Object, Serializer)
+     */
+    public <T> void set(String path, T value, Serializer<T> serializer) throws SerializationException {
+        get(path).set(value, serializer);
     }
 
 }
