@@ -11,6 +11,8 @@ import dev.willbanders.storm.serializer.primitive.DecimalSerializer;
 import dev.willbanders.storm.serializer.primitive.IntegerSerializer;
 import dev.willbanders.storm.serializer.primitive.ListSerializer;
 import dev.willbanders.storm.serializer.primitive.MapSerializer;
+import dev.willbanders.storm.serializer.primitive.NullableSerializer;
+import dev.willbanders.storm.serializer.primitive.OptionalSerializer;
 import dev.willbanders.storm.serializer.primitive.SetSerializer;
 import dev.willbanders.storm.serializer.primitive.StringSerializer;
 import org.junit.jupiter.api.Assertions;
@@ -24,6 +26,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Stream;
 
@@ -280,7 +283,7 @@ class SerializerTests {
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testSet")
         void testSet(String test, Serializer<?> serializer, Set value) {
             Object expected = value != null ? ImmutableList.copyOf(value) : null;
-            testSerializer(SetSerializer.INSTANCE.of(serializer), value, expected,value != null);
+            testSerializer(SetSerializer.INSTANCE.of(serializer), value, expected, value != null);
         }
 
         @Test
@@ -302,7 +305,7 @@ class SerializerTests {
             SetSerializer<String> base = SetSerializer.INSTANCE.of(StringSerializer.INSTANCE);
             Assertions.assertAll(
                     () -> testSerializer(base.size(Range.atLeast(1)), set, list, true),
-                    () -> testSerializer(base.size(Range.atLeast(5)), set, list,false),
+                    () -> testSerializer(base.size(Range.atLeast(5)), set, list, false),
                     () -> testSerializer(base.size(Range.closed(1, 5)), set, list, true)
             );
         }
@@ -348,6 +351,63 @@ class SerializerTests {
 
     }
 
+    @Nested
+    class NullableTests {
+
+        @Test
+        void testNullable() {
+            Serializer<String> serializer = NullableSerializer.INSTANCE.of(StringSerializer.INSTANCE);
+            Assertions.assertAll(
+                    () -> testSerializer(serializer, "string", "string", true),
+                    () -> testSerializer(serializer, null, null, true),
+                    () -> testDeserializer(serializer, ImmutableList.of("invalid"), null, false)
+            );
+        }
+
+        @Test
+        void testNullableDefault() {
+            NullableSerializer.NullableDeserializer<String> deserializer = NullableSerializer.INSTANCE.of(StringSerializer.INSTANCE).def("def");
+            Assertions.assertAll(
+                    () -> testDeserializer(deserializer, "string", "string", true),
+                    () -> testDeserializer(deserializer, null, "def", true),
+                    () -> testReserializer(deserializer.toSerializer(false), "def", "def", true),
+                    () -> testReserializer(deserializer.toSerializer(true), "def", null, true),
+                    () -> testReserializer(deserializer.toSerializer(true), null, null, false)
+            );
+        }
+
+    }
+
+    @Nested
+    class OptionalTests {
+
+        @Test
+        void testOptional() {
+            Serializer<Optional<String>> serializer = OptionalSerializer.INSTANCE.of(StringSerializer.INSTANCE);
+            Assertions.assertAll(
+                    () -> testSerializer(serializer, Optional.of("string"), "string", true),
+                    () -> Assertions.assertEquals(Optional.empty(), Node.root().get(serializer)),
+                    () -> testDeserializer(serializer, ImmutableList.of("invalid"), null, false)
+            );
+        }
+
+        @Test
+        void testOptionalDefault() {
+            OptionalSerializer.OptionalDefaultDeserializer<String> deserializer = OptionalSerializer.INSTANCE.of(StringSerializer.INSTANCE).def("def");
+            Assertions.assertAll(
+                    () -> testDeserializer(deserializer, "string", "string", true),
+                    () -> Assertions.assertEquals("def", Node.root().get(deserializer)),
+                    () -> testReserializer(deserializer.toSerializer(false), "def", "def", true),
+                    () -> {
+                        Node node = Node.root();
+                        node.set("def", deserializer.toSerializer(true));
+                        Assertions.assertEquals(Node.Type.UNDEFINED, node.getType());
+                    }
+            );
+        }
+
+    }
+
     @ParameterizedTest
     @MethodSource
     private static Stream<Arguments> testMap() {
@@ -372,6 +432,18 @@ class SerializerTests {
     }
 
     /**
+     * Tests that reserializing the given value equals the expected value if
+     * success is true, else asserts a {@link SerializationException} is thrown.
+     */
+    private void testReserializer(Serializer<?> serializer, Object value, Object expected, boolean success) {
+        Node node = Node.root();
+        test(() -> {
+            node.set(value, (Serializer<Object>) serializer);
+            Assertions.assertEquals(expected, node.getValue());
+        }, success);
+    }
+
+    /**
      * Tests that serializing the given value equals the expect value and that
      * deserializing the expected value equals the given value if success is
      * true, else asserts a {@link SerializationException} is thrown.
@@ -379,11 +451,7 @@ class SerializerTests {
     private void testSerializer(Serializer<?> serializer, Object value, Object expected, boolean success) {
         Assertions.assertAll(
                 () -> testDeserializer(serializer, expected, value, success),
-                () -> test(() -> {
-                    Node node = Node.root();
-                    node.set(value, (Serializer<Object>) serializer);
-                    Assertions.assertEquals(expected, node.getValue());
-                }, success)
+                () -> testReserializer(serializer, value, expected, success)
         );
     }
 
