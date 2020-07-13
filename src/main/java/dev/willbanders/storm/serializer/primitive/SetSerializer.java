@@ -2,67 +2,82 @@ package dev.willbanders.storm.serializer.primitive;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
 import com.google.common.collect.Range;
 import com.google.common.collect.Sets;
-import com.google.common.collect.Streams;
 import dev.willbanders.storm.config.Node;
+import dev.willbanders.storm.serializer.Deserializer;
 import dev.willbanders.storm.serializer.SerializationException;
 import dev.willbanders.storm.serializer.Serializer;
 
-import java.net.MulticastSocket;
-import java.util.AbstractMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
-public final class SetSerializer<T> implements Serializer<Set<T>> {
+public final class SetSerializer {
 
-    public static final SetSerializer<Object> INSTANCE = new SetSerializer<>(null, null);
+    public static final SetSerializerImpl<Object> INSTANCE = new SetSerializerImpl<>(null, Range.all());
 
-    private final Serializer<T> serializer;
-    private final Serializer<List<T>> delegate;
+    public interface SetDeserializer<T> extends Deserializer<Set<T>> {
 
-    private SetSerializer(Serializer<T> serializer, Range<Integer> size) {
-        this.serializer = serializer;
-        this.delegate = ListSerializer.INSTANCE.of(serializer).size(size);
+        SetDeserializer<T> size(Range<Integer> size);
+
+        SetSerializerImpl<T> toSerializer();
+
     }
 
-    @Override
-    public Set<T> deserialize(Node node) throws SerializationException {
-        List<T> list = node.get(delegate);
-        Set<T> value = Sets.newHashSet(list);
-        if (value.size() != list.size()) {
-            Map<T, Integer> map = Maps.newHashMap();
-            for (int i = 0; i < list.size(); i++) {
-                if (map.containsKey(list.get(i))) {
-                    throw new SerializationException(node, "Expected set to contain unique elements, " +
-                            "found duplicates at indices " + map.get(list.get(i)) + " and " + i + ".");
+    public static final class SetSerializerImpl<T> implements SetDeserializer<T>, Serializer<Set<T>> {
+
+        private final Serializer<T> serializer;
+        private final Serializer<List<T>> delegate;
+
+        private SetSerializerImpl(Serializer<T> serializer, Range<Integer> size) {
+            this.serializer = serializer;
+            this.delegate = ListSerializer.INSTANCE.of(serializer).size(size);
+        }
+
+        @Override
+        public Set<T> deserialize(Node node) throws SerializationException {
+            List<T> list = node.get(delegate);
+            Set<T> value = Sets.newHashSet(list);
+            if (value.size() != list.size()) {
+                Map<T, Integer> map = Maps.newHashMap();
+                for (int i = 0; i < list.size(); i++) {
+                    if (map.containsKey(list.get(i))) {
+                        throw new SerializationException(node, "Expected set to contain unique elements, " +
+                                "found duplicates at indices " + map.get(list.get(i)) + " and " + i + ".");
+                    }
+                    map.put(list.get(i), i);
                 }
-                map.put(list.get(i), i);
             }
+            return value;
         }
-        return value;
-    }
 
-    @Override
-    public void serialize(Node node, Set<T> value) throws SerializationException {
-        if (value == null) {
-            throw new SerializationException(node, "Expected a non-null value.");
+        @Override
+        public void serialize(Node node, Set<T> value) throws SerializationException {
+            if (value == null) {
+                throw new SerializationException(node, "Expected a non-null value.");
+            }
+            node.set(Lists.newArrayList(value), delegate);
         }
-        node.set(Lists.newArrayList(value), delegate);
-    }
 
-    public <T> SetSerializer<T> of(Serializer<T> serializer) {
-        return new SetSerializer<>(serializer, Range.all());
-    }
+        public <T> SetDeserializer<T> of(Deserializer<T> deserializer) {
+            return new SetSerializerImpl<>((Serializer<T>) serializer, Range.all());
+        }
 
-    public SetSerializer<T> size(Range<Integer> size) {
-        return new SetSerializer<>(serializer, size);
+        public <T> SetSerializerImpl<T> of(Serializer<T> serializer) {
+            return new SetSerializerImpl<>(serializer, Range.all());
+        }
+
+        @Override
+        public SetSerializerImpl<T> size(Range<Integer> size) {
+            return new SetSerializerImpl<>(serializer, size);
+        }
+
+        @Override
+        public SetSerializerImpl<T> toSerializer() {
+            return this;
+        }
+
     }
 
 }

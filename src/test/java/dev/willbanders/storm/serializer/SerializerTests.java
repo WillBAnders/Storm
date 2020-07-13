@@ -255,7 +255,7 @@ class SerializerTests {
         @Test
         void testListSize() {
             List<Object> list = ImmutableList.of("first", "second", "third");
-            ListSerializer<String> base = ListSerializer.INSTANCE.of(StringSerializer.INSTANCE);
+            ListSerializer.ListSerializerImpl<String> base = ListSerializer.INSTANCE.of(StringSerializer.INSTANCE);
             Assertions.assertAll(
                     () -> testSerializer(base.size(Range.atLeast(0)), list, list, true),
                     () -> testSerializer(base.size(Range.atLeast(5)), list, list, false),
@@ -302,7 +302,7 @@ class SerializerTests {
         void testSetSize() {
             Set<Object> set = ImmutableSet.of("first", "second", "third");
             List<Object> list = ImmutableList.copyOf(set);
-            SetSerializer<String> base = SetSerializer.INSTANCE.of(StringSerializer.INSTANCE);
+            SetSerializer.SetSerializerImpl<String> base = SetSerializer.INSTANCE.of(StringSerializer.INSTANCE);
             Assertions.assertAll(
                     () -> testSerializer(base.size(Range.atLeast(1)), set, list, true),
                     () -> testSerializer(base.size(Range.atLeast(5)), set, list, false),
@@ -341,7 +341,7 @@ class SerializerTests {
         @Test
         void testMapSize() {
             Map<String, Object> map = ImmutableMap.of("x", "first", "y", "second", "z", "third");
-            MapSerializer<String> base = MapSerializer.INSTANCE.of(StringSerializer.INSTANCE);
+            MapSerializer.MapSerializerImpl<String> base = MapSerializer.INSTANCE.of(StringSerializer.INSTANCE);
             Assertions.assertAll(
                     () -> testSerializer(base.size(Range.atLeast(0)), map, map, true),
                     () -> testSerializer(base.size(Range.atLeast(5)), map, map, false),
