@@ -49,10 +49,7 @@ public final class ListSerializer {
             } else if (!size.contains(value.size())) {
                 throw new SerializationException(node, "Expected the size of the list to be in range " + size + ".");
             }
-            if (node.getType() == Node.Type.UNDEFINED) {
-                node.attach();
-            }
-            node.setValue(ImmutableList.of());
+            node.attach().setValue(ImmutableList.of());
             for (int i = 0; i < value.size(); i++) {
                 node.resolve(i).set(value.get(i), serializer);
             }

@@ -43,10 +43,7 @@ public final class NullableSerializer {
                 throw new SerializationException(node, "Expected a non-null value.");
             }
             if (value == null || convertDef && value.equals(def)) {
-                if (node.getType() == Node.Type.UNDEFINED) {
-                    node.attach();
-                }
-                node.setValue(null);
+                node.attach().setValue(null);
             } else {
                 node.set(value, serializer);
             }

@@ -238,7 +238,10 @@ class NodeTests {
         @Test
         void testAttachRoot() {
             root.attach();
-            Assertions.assertNull(root.getValue());
+            Assertions.assertAll(
+                    () -> Assertions.assertEquals(Node.Type.NULL, root.getType()),
+                    () -> Assertions.assertNull(root.getValue())
+            );
         }
 
         @Test
@@ -271,9 +274,9 @@ class NodeTests {
             Node attached = root.resolve("child").attach();
             Assertions.assertAll(
                     () -> Assertions.assertNotSame(unattached, attached),
-                    () -> Assertions.assertThrows(RuntimeException.class, root::attach),
-                    () -> Assertions.assertThrows(RuntimeException.class, unattached::attach),
-                    () -> Assertions.assertThrows(RuntimeException.class, attached::attach)
+                    () -> Assertions.assertDoesNotThrow(root::attach),
+                    () -> Assertions.assertDoesNotThrow(attached::attach),
+                    () -> Assertions.assertThrows(RuntimeException.class, unattached::attach)
             );
         }
 
@@ -316,8 +319,8 @@ class NodeTests {
         @Test
         void testDetachUnattached() {
             Assertions.assertAll(
-                    () -> Assertions.assertThrows(RuntimeException.class, root::detach),
-                    () -> Assertions.assertThrows(RuntimeException.class, () -> root.resolve("child").detach())
+                    () -> Assertions.assertDoesNotThrow(root::detach),
+                    () -> Assertions.assertDoesNotThrow(() -> root.resolve("child").detach())
             );
         }
 

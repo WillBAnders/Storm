@@ -38,7 +38,7 @@ public final class OptionalSerializer<T> {
         public void serialize(Node node, Optional<T> value) throws SerializationException {
             if (value.isPresent()) {
                 node.set(value.get(), serializer);
-            } else if (node.getType() != Node.Type.UNDEFINED) {
+            } else {
                 node.detach();
             }
         }
@@ -89,9 +89,7 @@ public final class OptionalSerializer<T> {
             if (value == null) {
                 throw new SerializationException(node, "Expected a non-null value.");
             } else if (convertDef && value.equals(def)) {
-                if (node.getType() != Node.Type.UNDEFINED) {
-                    node.detach();
-                }
+                node.detach();
             } else {
                 node.set(value, serializer);
             }

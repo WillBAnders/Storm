@@ -49,7 +49,7 @@ public final class DecimalSerializer<T extends Number & Comparable<T>> implement
         if (node.getType() == Node.Type.UNDEFINED) {
             node.attach();
         }
-        node.setValue(new BigDecimal(value.toString()));
+        node.attach().setValue(new BigDecimal(value.toString()));
     }
 
     /**

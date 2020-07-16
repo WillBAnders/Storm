@@ -52,10 +52,7 @@ public final class IntegerSerializer<T extends Number & Comparable<T>> implement
         } else if (!range.contains(value)) {
             throw new SerializationException(node, "Expected value to be in range " + range + ".");
         }
-        if (node.getType() == Node.Type.UNDEFINED) {
-            node.attach();
-        }
-        node.setValue(new BigInteger(value.toString()));
+        node.attach().setValue(new BigInteger(value.toString()));
     }
 
     /**

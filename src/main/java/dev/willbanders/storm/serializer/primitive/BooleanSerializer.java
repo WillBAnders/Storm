@@ -26,10 +26,7 @@ public final class BooleanSerializer implements Serializer<Boolean> {
         if (value == null) {
             throw new SerializationException(node, "Expected a non-null value.");
         }
-        if (node.getType() == Node.Type.UNDEFINED) {
-            node.attach();
-        }
-        node.setValue(value);
+        node.attach().setValue(value);
     }
 
 }

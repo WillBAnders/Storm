@@ -39,10 +39,7 @@ public final class CharacterSerializer implements Serializer<Character> {
         } else if (pattern != null && !pattern.matcher(value.toString()).matches()) {
             throw new SerializationException(node, "Expected character to match " + pattern + ".");
         }
-        if (node.getType() == Node.Type.UNDEFINED) {
-            node.attach();
-        }
-        node.setValue(value);
+        node.attach().setValue(value);
     }
 
     /**

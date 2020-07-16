@@ -53,10 +53,7 @@ public final class MapSerializer {
             } else if (!size.contains(value.size())) {
                 throw new SerializationException(node, "Expected the size of the map to be in range " + size + ".");
             }
-            if (node.getType() == Node.Type.UNDEFINED) {
-                node.attach();
-            }
-            node.setValue(ImmutableMap.of());
+            node.attach().setValue(ImmutableMap.of());
             for (Map.Entry<String, T> entry : value.entrySet()) {
                 node.set(entry.getKey(), entry.getValue(), serializer);
             }

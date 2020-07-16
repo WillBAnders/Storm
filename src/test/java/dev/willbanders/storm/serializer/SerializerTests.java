@@ -426,8 +426,8 @@ class SerializerTests {
      * success is true, else asserts a {@link SerializationException} is thrown.
      */
     private void testDeserializer(Deserializer<?> deserializer, Object value, Object expected, boolean success) {
-        Node node = Node.root().attach();
-        node.setValue(value);
+        Node node = Node.root();
+        node.attach().setValue(value);
         test(() -> Assertions.assertEquals(expected, node.get(deserializer)), success);
     }
 

@@ -271,20 +271,19 @@ public final class Node {
     }
 
     /**
-     * Attaches this node to the node hierarchy, provided it is currently
-     * unattached ({@link Type#UNDEFINED}). After being attached, the node's
-     * value will be {@link Type#NULL}.
+     * Ensures this node is attached to the node hierarchy. If the node was
+     * previously unattached, the node's value will be {@link Type#NULL}.
      *
      * <p>This process will create intermediate nodes necessary to attach this
      * node, provided it does not overwrite any existing values. For arrays,
      * this includes inserting nodes at earlier indices to prevent holes.</p>
      *
-     * @throws IllegalStateException if this node is already attached or
-     *         attaching this node would overwrite existing values.
+     * @throws IllegalStateException if attaching would overwrite values.
      */
     public Node attach() {
-        Preconditions.checkState(type == Type.UNDEFINED, "This node is already attached.");
-        if (parent != null) {
+        if (type != Type.UNDEFINED) {
+            return this;
+        } else if (parent != null) {
             parent.attachChild(this);
         }
         type = Type.NULL;
@@ -327,18 +326,16 @@ public final class Node {
     }
 
     /**
-     * Detaches this node from the node hierarchy, provided it is currently
-     * attached (not {@link Type#UNDEFINED}). After being detached, the node's
-     * value will be {@link Type#UNDEFINED}.
+     * Ensures this node is detached from the node hierarchy. After being
+     * detached, the node's value will be {@link Type#UNDEFINED}.
      *
      * <p>For arrays, this process includes shifting any subsequent nodes in the
      * array to fill the hole left by removal.</p>
-     *
-     * @throws IllegalStateException if this node is not currently attached
      */
     public Node detach() {
-        Preconditions.checkState(type != Type.UNDEFINED, "This node is not attached.");
-        if (parent != null) {
+        if (type == Type.UNDEFINED) {
+            return this;
+        } else if (parent != null) {
             switch (parent.type) {
                 case ARRAY:
                     List<Node> list = (List<Node>) parent.value;

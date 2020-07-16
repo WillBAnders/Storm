@@ -39,10 +39,7 @@ public final class StringSerializer implements Serializer<String> {
         } else if (pattern != null && !pattern.matcher(value).matches()) {
             throw new SerializationException(node, "Expected string to match " + pattern + ".");
         }
-        if (node.getType() == Node.Type.UNDEFINED) {
-            node.attach();
-        }
-        node.setValue(value);
+        node.attach().setValue(value);
     }
 
     /**
