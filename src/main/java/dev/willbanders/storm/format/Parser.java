@@ -66,11 +66,12 @@ public abstract class Parser<T extends Token.Type> {
         }
 
         public Token<T> get(int offset) {
-            Preconditions.checkState(has(offset));
+            Preconditions.checkState(has(offset), "Broken parser invariant.");
             return tokens.get(index + offset);
         }
 
         public void advance() {
+            Preconditions.checkState(has(0), "Broken parser invariant.");
             index++;
         }
 

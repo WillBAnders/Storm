@@ -11,8 +11,12 @@ import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public final class StormParser extends Parser<StormTokenType> {
+
+    private static final Pattern ESCAPES = Pattern.compile("\\\\(?:([bfnrt\'\"\\\\])|u([0-9A-F]{4}))");
 
     private StormParser(String input) throws ParseException {
         super(new StormLexer(input));
@@ -31,6 +35,7 @@ public final class StormParser extends Parser<StormTokenType> {
     }
 
     private Object parseRoot() throws ParseException {
+        while (match(StormTokenType.NEWLINE)) {}
         if (!tokens.has(0)) {
             return new LinkedHashMap<>();
         } else if (!peek(StormTokenType.IDENTIFIER) || peek(Arrays.asList("null", "true", "false"))) {
@@ -42,8 +47,10 @@ public final class StormParser extends Parser<StormTokenType> {
                 String key = tokens.get(-1).getLiteral();
                 require(match("="), "Expected an equal sign separator for property value.");
                 map.put(key, parseValue());
-                require(match(Arrays.asList(",", StormTokenType.NEWLINE)), "Expected a comma or newline separator following property.");
-                while (match(StormTokenType.NEWLINE)) {}
+                if (tokens.has(0)) {
+                    require(match(Arrays.asList(",", StormTokenType.NEWLINE)), "Expected a comma/newline separator or closing brace following property.");
+                    while (match(StormTokenType.NEWLINE)) {}
+                }
             }
             return map;
         }
@@ -65,13 +72,27 @@ public final class StormParser extends Parser<StormTokenType> {
             return new BigDecimal(tokens.get(-1).getLiteral());
         } else if (match(StormTokenType.CHARACTER)) {
             String literal = tokens.get(-1).getLiteral();
-            return escape(literal.substring(1, literal.length() - 1)).charAt(0);
+            return unescape(literal.substring(1, literal.length() - 1)).charAt(0);
         } else if (match(StormTokenType.STRING)) {
             String literal = tokens.get(-1).getLiteral();
-            return escape(literal.substring(1, literal.length() - 1));
+            return unescape(literal.substring(1, literal.length() - 1));
         } else {
             throw new ParseException("Invalid value: " + tokens.get(0).getLiteral());
         }
+    }
+
+    private List<Object> parseArray() throws ParseException {
+        require(match("["), "Broken parser invariant");
+        while (match(StormTokenType.NEWLINE)) {}
+        List<Object> list = new ArrayList<>();
+        while (!match("]")) {
+            list.add(parseValue());
+            if (!peek("]")) {
+                require(match(Arrays.asList(",", StormTokenType.NEWLINE)), "Expected a comma/newline separator or the closing bracket following array element.");
+                while (match(StormTokenType.NEWLINE)) {}
+            }
+        }
+        return list;
     }
 
     private Map<String, Object> parseObject() throws ParseException {
@@ -84,37 +105,41 @@ public final class StormParser extends Parser<StormTokenType> {
             require(match("="), "Expected an equal sign separator for property value.");
             map.put(key, parseValue());
             if (!peek("}")) {
-                System.out.println("Pre: " + tokens.get(-1).getType() + "/" + tokens.get(-1).getLiteral());
-                System.out.println("Post: " + tokens.get(0).getType() + "/" + tokens.get(0).getLiteral());
-                require(match(Arrays.asList(",", StormTokenType.NEWLINE)), "Expected a comma or newline separator following property.");
+                require(match(Arrays.asList(",", StormTokenType.NEWLINE)), "Expected a comma/newline separator or the closing brace following property.");
                 while (match(StormTokenType.NEWLINE)) {}
             }
         }
         return map;
     }
 
-    private List<Object> parseArray() throws ParseException {
-        require(match("["), "Broken parser invariant");
-        while (match(StormTokenType.NEWLINE)) {}
-        List<Object> list = new ArrayList<>();
-        while (!match("]")) {
-            list.add(parseValue());
-            if (!peek("]")) {
-                require(match(Arrays.asList(",", StormTokenType.NEWLINE)), "Expected a comma or newline separator following array element.");
-                while (match(StormTokenType.NEWLINE)) {}
+    private String unescape(String string) {
+        StringBuilder builder = new StringBuilder();
+        Matcher matcher = ESCAPES.matcher(string);
+        int index = 0;
+        while (matcher.find()) {
+            if (index < matcher.start()) {
+                builder.append(string, index, matcher.start());
             }
+            if (matcher.group(1) != null) {
+                switch (matcher.group(1)) {
+                    case "b": builder.append("\b"); break;
+                    case "f": builder.append("\f"); break;
+                    case "n": builder.append("\n"); break;
+                    case "r": builder.append("\r"); break;
+                    case "t": builder.append("\t"); break;
+                    case "\'": builder.append("\'"); break;
+                    case "\"": builder.append("\""); break;
+                    case "\\": builder.append("\\"); break;
+                    default: throw new IllegalStateException("Broken parser invariant.");
+                }
+            } else if (matcher.group(2) != null) {
+                builder.append((char) Integer.parseInt(matcher.group(2), 16));
+            } else {
+                throw new IllegalStateException("Broken parser invariant.");
+            }
+            index = matcher.end();
         }
-        return list;
-    }
-
-    private String escape(String string) {
-        return string.replace("\\b", "\b")
-                .replace("\\n", "\n")
-                .replace("\\r", "\r")
-                .replace("\\t", "\t")
-                .replace("\\\'", "\'")
-                .replace("\\\"", "\"")
-                .replace("\\\\", "\\");
+        return builder.append(string.substring(index)).toString();
     }
 
 }

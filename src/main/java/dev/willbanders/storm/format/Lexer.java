@@ -1,5 +1,7 @@
 package dev.willbanders.storm.format;
 
+import com.google.common.base.Preconditions;
+
 import java.util.List;
 
 public abstract class Lexer<T extends Token.Type> {
@@ -69,12 +71,12 @@ public abstract class Lexer<T extends Token.Type> {
         }
 
         public char get(int offset) {
-            assert has(offset);
+            Preconditions.checkState(has(offset), "Broken lexer invariant.");
             return input.charAt(index + offset);
         }
 
         public void advance() {
-            assert has(0);
+            Preconditions.checkState(has(0), "Broken lexer invariant.");
             builder.append(input.charAt(index++));
         }
 

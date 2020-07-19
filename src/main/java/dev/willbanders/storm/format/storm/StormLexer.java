@@ -1,5 +1,6 @@
 package dev.willbanders.storm.format.storm;
 
+import com.google.common.base.Preconditions;
 import dev.willbanders.storm.format.Lexer;
 import dev.willbanders.storm.format.ParseException;
 import dev.willbanders.storm.format.Token;
@@ -48,19 +49,22 @@ public final class StormLexer extends Lexer<StormTokenType> {
             match('\r');
         } else if (match('\r')) {
             match('\n');
+        } else {
+            throw new IllegalStateException("Broken lexer invariant.");
         }
         return StormTokenType.NEWLINE;
     }
 
     private StormTokenType lexIdentifier() {
-        while (match("[A-Za-z_-]")) {}
+        Preconditions.checkState(match("[a-z]"), "Broken lexer invariant.");
+        while (match("[a-z_-]")) {}
         return StormTokenType.IDENTIFIER;
     }
 
     private StormTokenType lexNumber() {
         match("[+-]");
-        require(match("[0-9]"), "Expected a digit 0-9.");
-        while (match("[0-9]"));
+        Preconditions.checkState(match("[0-9]"), "Broken lexer invariant.");
+        while (match("[0-9]")) {}
         if (match('.', "[0-9]")) {
             while (match("[0-9]")) {}
             return StormTokenType.DECIMAL;
@@ -69,46 +73,37 @@ public final class StormLexer extends Lexer<StormTokenType> {
     }
 
     private StormTokenType lexCharacter() throws ParseException {
-        assert peek('\'');
-        match('\'');
-        while (peek("[^\'\\\\]")) {
-            if (match('\\')) {
-                if (match('u')) {
-                    for (int i = 0; i < 4; i++) {
-                        require(match("[0-9A-F]"), "Invalid unicode escape.");
-                    }
-                } else {
-                    require(match("[bfnrt\"\\/\\\\]"), "Invalid escape character.");
-                }
-            } else {
-                chars.advance();
-            }
-        }
-        require(match('\''), "Unterminated string literal.");
+        Preconditions.checkState(match('\''), "Broken lexer invariant.");
+        require(peek("[^\']"), "Empty character literal.");
+        lexEscape();
+        require(match('\''), "Unterminated character literal.");
         return StormTokenType.CHARACTER;
     }
 
     private StormTokenType lexString() throws ParseException {
-        assert peek('\"');
-        match('\"');
-        while (peek("[^\"\\\\]")) {
-            if (match('\\')) {
-                if (match('u')) {
-                    for (int i = 0; i < 4; i++) {
-                        require(match("[0-9A-F]"), "Invalid unicode escape.");
-                    }
-                } else {
-                    require(match("[bfnrt\"\\/\\\\]"), "Invalid escape character.");
-                }
-            } else {
-                chars.advance();
-            }
+        Preconditions.checkState(match('\"'), "Broken lexer invariant.");
+        while (peek("[^\"]")) {
+            lexEscape();
         }
         require(match('\"'), "Unterminated string literal.");
         return StormTokenType.STRING;
     }
 
-    private StormTokenType lexOperator() throws ParseException {
+    private void lexEscape() throws ParseException {
+        if (match('\\')) {
+            if (match('u')) {
+                for (int i = 0; i < 4; i++) {
+                    require(match("[0-9A-F]"), "Invalid unicode escape character.");
+                }
+            } else {
+                require(match("[bfnrt\'\"\\\\]"), "Invalid escape character.");
+            }
+        } else {
+            chars.advance();
+        }
+    }
+
+    private StormTokenType lexOperator() {
         chars.advance();
         return StormTokenType.OPERATOR;
     }

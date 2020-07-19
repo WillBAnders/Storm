@@ -27,22 +27,23 @@ public final class StormGenerator extends Generator {
 
     @Override
     protected void generateCharacter(Node node) {
-        write("\'", unescape(String.valueOf((char) node.getValue())), "\'");
+        write("\'", escape(node.getValue().toString()), "\'");
     }
 
     @Override
     protected void generateString(Node node) {
-        write("\"", unescape((String) node.getValue()), "\"");
+        write("\"", escape(node.getValue().toString()), "\"");
     }
 
-    private String unescape(String string) {
-        return string.replace("\b", "\\b")
+    private String escape(String string) {
+        return string.replace("\\", "\\\\")
+                .replace("\b", "\\b")
+                .replace("\f", "\\f")
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t")
                 .replace("\'", "\\'")
-                .replace("\"", "\\\"")
-                .replace("\\", "\\\\");
+                .replace("\"", "\\\"");
     }
 
     @Override
