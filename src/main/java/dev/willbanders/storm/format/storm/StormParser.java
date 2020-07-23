@@ -1,6 +1,9 @@
 package dev.willbanders.storm.format.storm;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import dev.willbanders.storm.config.Node;
+import dev.willbanders.storm.format.Diagnostic;
 import dev.willbanders.storm.format.ParseException;
 import dev.willbanders.storm.format.Parser;
 
@@ -30,7 +33,6 @@ public final class StormParser extends Parser<StormTokenType> {
     protected Node parse() throws ParseException {
         Node node = Node.root();
         node.attach().setValue(parseRoot());
-        require(!tokens.has(0), "Expected end of input.");
         return node;
     }
 
@@ -39,25 +41,33 @@ public final class StormParser extends Parser<StormTokenType> {
         if (!tokens.has(0)) {
             return new LinkedHashMap<>();
         } else if (!peek(StormTokenType.IDENTIFIER) || peek(Arrays.asList("null", "true", "false"))) {
-            return parseValue();
+            context.addFirst(tokens.get(0).getRange());
+            Object value = parseValue();
+            while (match(StormTokenType.NEWLINE)) {}
+            require(!tokens.has(0), () -> Diagnostic.builder()
+                    .summary("Expected end of input.")
+                    .details("The config was parsed as a single value, but more input was provided. Multiple values must be included in an array or object, such as [1, 2, 3] or {x = 1, y = 2, z = 3}."));
+            context.removeLast();
+            return value;
         } else {
             Map<String, Object> map = new LinkedHashMap<>();
             while (tokens.has(0)) {
-                require(match(StormTokenType.IDENTIFIER), "Expected an identifier or string for property key.");
-                String key = tokens.get(-1).getLiteral();
-                require(match("="), "Expected an equal sign separator for property value.");
-                map.put(key, parseValue());
+                Map.Entry<String, Object> property = parseProperty();
+                map.put(property.getKey(), property.getValue());
                 if (tokens.has(0)) {
-                    require(match(Arrays.asList(",", StormTokenType.NEWLINE)), "Expected a comma/newline separator or closing brace following property.");
+                    require(match(Arrays.asList(",", StormTokenType.NEWLINE)), () -> Diagnostic.builder()
+                            .summary("Expected a comma/newline separator after property.")
+                            .details("Object properties must be followed by either a comma or a newline. This could caused by an invalid value as well."));
                     while (match(StormTokenType.NEWLINE)) {}
                 }
+                context.removeLast();
             }
             return map;
         }
     }
 
     private Object parseValue() throws ParseException {
-        require(tokens.has(0), "Unexpected end of input.");
+        Preconditions.checkState(tokens.has(0) && !peek(StormTokenType.NEWLINE), "Broken parser invariant.");
         if (peek("{")) {
             return parseObject();
         } else if (peek("[")) {
@@ -77,39 +87,76 @@ public final class StormParser extends Parser<StormTokenType> {
             String literal = tokens.get(-1).getLiteral();
             return unescape(literal.substring(1, literal.length() - 1));
         } else {
-            throw new ParseException("Invalid value: " + tokens.get(0).getLiteral());
+            throw error(Diagnostic.builder()
+                    .summary("Invalid value.")
+                    .details("Expected to parse a value, but found an invalid token. This could be caused by a missing bracket, brace, or quotes.")
+                    .range(tokens.get(0).getRange()));
         }
     }
 
     private List<Object> parseArray() throws ParseException {
-        require(match("["), "Broken parser invariant");
+        Preconditions.checkState(match("["), "Broken parser invariant.");
         while (match(StormTokenType.NEWLINE)) {}
         List<Object> list = new ArrayList<>();
         while (!match("]")) {
+            require(tokens.has(0), () -> Diagnostic.builder()
+                    .summary("Unexpected end of input.")
+                    .details("Expected to parse an array value, but reached the end of available input. This could be caused by a missing closing bracket ']'."));
+            context.addLast(tokens.get(0).getRange());
             list.add(parseValue());
             if (!peek("]")) {
-                require(match(Arrays.asList(",", StormTokenType.NEWLINE)), "Expected a comma/newline separator or the closing bracket following array element.");
+                require(match(Arrays.asList(",", StormTokenType.NEWLINE)), () -> Diagnostic.builder()
+                        .summary("Expected a comma/newline separator or the closing bracket after array value.")
+                        .details("Array values must be followed by either a comma or a newline, or a closing bracket to complete the array. This could also be caused by an invalid value."));
                 while (match(StormTokenType.NEWLINE)) {}
             }
+            context.removeLast();
         }
         return list;
     }
 
     private Map<String, Object> parseObject() throws ParseException {
-        require(match("{"), "Broken parser invariant.");
+        Preconditions.checkState(match("{"), "Broken parser invariant.");
         while (match(StormTokenType.NEWLINE)) {}
         Map<String, Object> map = new LinkedHashMap<>();
         while (!match("}")) {
-            require(match(StormTokenType.IDENTIFIER), "Expected an identifier or string for property key.");
-            String key = tokens.get(-1).getLiteral();
-            require(match("="), "Expected an equal sign separator for property value.");
-            map.put(key, parseValue());
+            Map.Entry<String, Object> property = parseProperty();
+            map.put(property.getKey(), property.getValue());
             if (!peek("}")) {
-                require(match(Arrays.asList(",", StormTokenType.NEWLINE)), "Expected a comma/newline separator or the closing brace following property.");
+                require(match(Arrays.asList(",", StormTokenType.NEWLINE)), () -> Diagnostic.builder()
+                        .summary("Expected a comma/newline separator or the closing brace after property.")
+                        .details("Object properties must be followed by either a comma or a newline, or a closing brace to complete the object. This could also be caused by an invalid value."));
                 while (match(StormTokenType.NEWLINE)) {}
             }
+            context.removeLast();
         }
         return map;
+    }
+
+    private Map.Entry<String, Object> parseProperty() {
+        require(match(StormTokenType.IDENTIFIER), () -> Diagnostic.builder()
+                .summary("Expected an identifier for property key.")
+                .details("A property has the form 'key = value', where key is an identifier (a-z followed by a-z, _, or -). Strings and other symbols are not allowed."));
+        String key = tokens.get(-1).getLiteral();
+        context.addLast(tokens.get(-1).getRange());
+        if (!tokens.has(0) || peek(StormTokenType.NEWLINE)) {
+            throw error(Diagnostic.builder()
+                    .summary("Expected a property value following key.")
+                    .details("A property has the form 'key = value', and thus requires an equals sign and value following the key.")
+                    .range(tokens.get(-1).getRange()));
+        }
+        require(match("="), () -> Diagnostic.builder()
+                .summary("Expected a equals sign between property key and value.")
+                .details("A property has the form 'key = value', and thus requires an equals sign even for arrays and objects."));
+        if (!tokens.has(0) || peek(StormTokenType.NEWLINE)) {
+            Diagnostic.Range start = tokens.get(-2).getRange();
+            Diagnostic.Range end = tokens.get(-1).getRange();
+            throw error(Diagnostic.builder()
+                    .summary("Expected a property value following key and equals sign.")
+                    .details("A property has the form 'key = value', and thus requires a value following the key and equals sign.")
+                    .range(Diagnostic.range(start.getIndex(), start.getLine(), start.getColumn(), end.getIndex() + end.getLength() - start.getIndex())));
+        }
+        return Maps.immutableEntry(key, parseValue());
     }
 
     private String unescape(String string) {

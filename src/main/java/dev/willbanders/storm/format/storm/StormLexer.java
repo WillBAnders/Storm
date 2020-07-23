@@ -1,12 +1,10 @@
 package dev.willbanders.storm.format.storm;
 
 import com.google.common.base.Preconditions;
+import dev.willbanders.storm.format.Diagnostic;
 import dev.willbanders.storm.format.Lexer;
 import dev.willbanders.storm.format.ParseException;
 import dev.willbanders.storm.format.Token;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public final class StormLexer extends Lexer<StormTokenType> {
 
@@ -15,20 +13,26 @@ public final class StormLexer extends Lexer<StormTokenType> {
     }
 
     @Override
-    protected List<Token<StormTokenType>> lex() throws ParseException {
+    public void lex() throws ParseException {
         while (match("[ \t]")) {}
-        chars.emit();
-        List<Token<StormTokenType>> tokens = new ArrayList<>();
+        chars.emit(StormTokenType.OPERATOR);
         while (chars.has(0)) {
-            startIndex = chars.getIndex();
-            tokens.add(new Token<>(lexToken(), chars.emit()));
+            Token<StormTokenType> token = chars.emit(lexToken());
+            if (token.getType() == StormTokenType.NEWLINE) {
+                chars.newline();
+            } else if (token.getType() == StormTokenType.OPERATOR) {
+                switch (token.getLiteral()) {
+                    case "{": case "[": context.addLast(token.getRange()); break;
+                    case "}": case "]": context.removeLast(); break;
+                }
+            }
+            tokens.add(token);
             while (match("[ \t]")) {}
-            chars.emit();
+            chars.emit(StormTokenType.OPERATOR);
         }
-        return tokens;
     }
 
-    protected StormTokenType lexToken() throws ParseException {
+    private StormTokenType lexToken() throws ParseException {
         if (peek("[\n\r]")) {
             return lexNewline();
         } else if (peek("[a-z]")) {
@@ -74,29 +78,60 @@ public final class StormLexer extends Lexer<StormTokenType> {
 
     private StormTokenType lexCharacter() throws ParseException {
         Preconditions.checkState(match('\''), "Broken lexer invariant.");
-        require(peek("[^\']"), "Empty character literal.");
+        require(chars.has(0) && !match('\''), () -> Diagnostic.builder()
+                .summary("Empty character literal.")
+                .details("A character literal must contain a single character, such as \'c\'. If a literal single-quote is desired, use an escape as in \'\\\'\'."));
         lexEscape();
-        require(match('\''), "Unterminated character literal.");
+        if (!match('\'')) {
+            while (peek("[^\'\n\r]")) {
+                chars.advance();
+            }
+            if (match('\'')) {
+                throw error(Diagnostic.builder()
+                        .summary("Character literal contains multiple characters.")
+                        .details("A character literal must contain a single character, such as \'c\'. If multiple characters is desired, use a string as in \"abc\"")
+                        .range(chars.getRange()));
+            } else {
+                throw error(Diagnostic.builder()
+                        .summary("Unterminated character literal.")
+                        .details("A character literal must be surrounded by single quotes and contain a single character, such as \'c\'.")
+                        .range(chars.getRange()));
+            }
+        }
         return StormTokenType.CHARACTER;
     }
 
     private StormTokenType lexString() throws ParseException {
         Preconditions.checkState(match('\"'), "Broken lexer invariant.");
-        while (peek("[^\"]")) {
+        while (peek("[^\"\n\r]")) {
             lexEscape();
         }
-        require(match('\"'), "Unterminated string literal.");
+        require(match('\"'), () -> Diagnostic.builder()
+                .summary("Unterminated string literal.")
+                .details("A string literal must be surrounded by double quotes, such as \"abc\". If a literal double-quote is desired, use an escape as in \"abc\\\"123\".")
+                .range(chars.getRange()));
         return StormTokenType.STRING;
     }
 
     private void lexEscape() throws ParseException {
         if (match('\\')) {
+            Diagnostic.Range range = chars.getRange();
             if (match('u')) {
                 for (int i = 0; i < 4; i++) {
-                    require(match("[0-9A-F]"), "Invalid unicode escape character.");
+                    if (!chars.has(0)) {
+                        return;
+                    } else if (!match("[0-9A-F]")) {
+                        throw error(Diagnostic.builder()
+                                .summary("Invalid unicode escape character.")
+                                .details("A unicode escape is in the form \\uXXXX, where X is a hexadecimal digit (0-9 & A-F). If a literal backslash is desired, use an escape as in \"abc\\\\123\".")
+                                .range(Diagnostic.range(range.getIndex() + range.getLength(), range.getLine(), range.getColumn() + range.getLength(), i + 2)));
+                    }
                 }
-            } else {
-                require(match("[bfnrt\'\"\\\\]"), "Invalid escape character.");
+            } else if (!match("[bfnrt\'\"\\\\]") && chars.has(0)) {
+                throw error(Diagnostic.builder()
+                        .summary("Invalid escape character.")
+                        .details("An escape is in the form \\char, where char is one of b, f, n, r, t, \', \", and \\. If a literal backslash is desired, use an escape as in \"abc\\\\123\".")
+                        .range(Diagnostic.range(range.getIndex(), range.getLine(), range.getColumn(), 2)));
             }
         } else {
             chars.advance();

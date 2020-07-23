@@ -1,19 +1,26 @@
 package dev.willbanders.storm.format;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
+import java.util.function.Supplier;
 
 public abstract class Lexer<T extends Token.Type> {
 
-    protected final CharStream chars;
-    protected int startIndex;
+    protected final String input;
+    protected final CharStream chars = new CharStream();
+    protected final List<Token<T>> tokens = Lists.newArrayList();
+    protected final Deque<Diagnostic.Range> context = new ArrayDeque<>();
 
     protected Lexer(String input) {
-        chars = new CharStream(input);
+        this.input = input;
     }
 
-    protected abstract List<Token<T>> lex() throws ParseException;
+    public abstract void lex() throws ParseException;
 
     protected boolean peek(Object... objects) {
         for (int i = 0; i < objects.length; i++) {
@@ -46,24 +53,31 @@ public abstract class Lexer<T extends Token.Type> {
         }
     }
 
-    protected void require(boolean condition, String message) throws ParseException {
+    protected void require(boolean condition, Supplier<Diagnostic.Builder> supplier) throws ParseException {
         if (!condition) {
-            throw new ParseException(message);
+            throw error(supplier.get().range(chars.getRange()));
         }
     }
 
-    protected static final class CharStream {
+    protected ParseException error(Diagnostic.Builder builder) {
+        return new ParseException(builder
+                .input(input)
+                .context(ImmutableList.copyOf(context))
+                .build());
+    }
 
-        private final String input;
+    protected final class CharStream {
+
         private int index = 0;
+        private int line = 1;
+        private int column = 1;
+        private int length = 0;
         private final StringBuilder builder = new StringBuilder();
 
-        private CharStream(String input) {
-            this.input = input;
-        }
+        private CharStream() {}
 
-        public int getIndex() {
-            return index;
+        public Diagnostic.Range getRange() {
+            return Diagnostic.range(index - length, line, column, length);
         }
 
         public boolean has(int offset) {
@@ -78,12 +92,21 @@ public abstract class Lexer<T extends Token.Type> {
         public void advance() {
             Preconditions.checkState(has(0), "Broken lexer invariant.");
             builder.append(input.charAt(index++));
+            length++;
         }
 
-        public String emit() {
+        public Token<T> emit(T type) {
             String literal = builder.toString();
+            Diagnostic.Range range = getRange();
             builder.setLength(0);
-            return literal;
+            column += length;
+            length = 0;
+            return new Token<>(type, literal, range);
+        }
+
+        public void newline() {
+            line++;
+            column = 1;
         }
 
     }

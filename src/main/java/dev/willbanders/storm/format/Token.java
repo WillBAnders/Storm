@@ -6,10 +6,12 @@ public final class Token<T extends Token.Type> {
 
     private final T type;
     private final String literal;
+    private final Diagnostic.Range range;
 
-    public Token(T type, String literal) {
+    Token(T type, String literal, Diagnostic.Range range) {
         this.type = type;
         this.literal = literal;
+        this.range = range;
     }
 
     public T getType() {
@@ -18,6 +20,10 @@ public final class Token<T extends Token.Type> {
 
     public String getLiteral() {
         return literal;
+    }
+
+    public Diagnostic.Range getRange() {
+        return range;
     }
 
 }
