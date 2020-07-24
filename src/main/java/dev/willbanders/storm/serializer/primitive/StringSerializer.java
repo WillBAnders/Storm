@@ -22,11 +22,11 @@ public final class StringSerializer implements Serializer<String> {
 
     @Override
     public String deserialize(Node node) throws SerializationException {
-        if (!(node.getType() == Node.Type.STRING)) {
+        if (node.getType() != Node.Type.STRING) {
             throw new SerializationException(node, "Expected a string value.");
         }
         String value = (String) node.getValue();
-        if (!(pattern == null || pattern.matcher(value).matches())) {
+        if (pattern != null && !pattern.matcher(value).matches()) {
             throw new SerializationException(node, "Expected string to match " + pattern + ".");
         }
         return value;

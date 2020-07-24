@@ -10,7 +10,7 @@ import java.util.function.Function;
 
 /**
  * Deserializes a {@link Node.Type#DECIMAL} value into a decimal number of type
- * {@link T}. A {@link Range<T>} may be provided to require the value to be
+ * {@link T}. A {@link Range} may be provided to require the value to be
  * contained within a range.
  */
 public final class DecimalSerializer<T extends Number & Comparable<T>> implements Serializer<T> {
@@ -45,9 +45,6 @@ public final class DecimalSerializer<T extends Number & Comparable<T>> implement
             throw new SerializationException(node, "Expected a non-null value.");
         } else if (!range.contains(value)) {
             throw new SerializationException(node, "Expected value to be in range " + range + ".");
-        }
-        if (node.getType() == Node.Type.UNDEFINED) {
-            node.attach();
         }
         node.attach().setValue(new BigDecimal(value.toString()));
     }

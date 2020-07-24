@@ -364,7 +364,7 @@ public final class Node {
      * @see #resolve(Object...)
      */
     public Node get(String path) {
-        return resolve(path.split("\\."));
+        return resolve((Object[]) path.split("\\."));
     }
 
     /**
@@ -393,7 +393,7 @@ public final class Node {
      * Serializes the value to this node using the given serializer.
      *
      * @throws SerializationException if the node could not be serialized
-     * @see Serializer#serialize(Node, T)
+     * @see Serializer#serialize(Node, Object) 
      */
     public <T> void set(T value, Serializer<T> serializer) throws SerializationException {
         serializer.serialize(this, value);

@@ -206,8 +206,6 @@ public class StormFormatTests {
                         root.attach().setValue(value);
                         StringWriter writer = new StringWriter();
                         StormGenerator.generate(root, new PrintWriter(writer));
-                        System.out.println(input);
-                        System.out.println(writer.toString());
                         Node node = StormParser.parse(writer.toString());
                         Assertions.assertAll(
                                 () -> Assertions.assertEquals(type, node.getType()),

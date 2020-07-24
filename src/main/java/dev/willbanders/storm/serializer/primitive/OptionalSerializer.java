@@ -4,7 +4,6 @@ import dev.willbanders.storm.config.Node;
 import dev.willbanders.storm.serializer.Deserializer;
 import dev.willbanders.storm.serializer.SerializationException;
 import dev.willbanders.storm.serializer.Serializer;
-import dev.willbanders.storm.serializer.combinator.OptionalDeserializer;
 
 import java.util.Optional;
 

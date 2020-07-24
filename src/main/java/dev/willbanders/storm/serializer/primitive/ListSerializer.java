@@ -56,7 +56,7 @@ public final class ListSerializer {
         }
 
         public <T> ListDeserializer<T> of(Deserializer<T> deserializer) {
-            return new ListSerializerImpl<>((Serializer<T>) serializer, Range.all());
+            return new ListSerializerImpl<>((Serializer<T>) deserializer, Range.all());
         }
 
         public <T> ListSerializerImpl<T> of(Serializer<T> serializer) {

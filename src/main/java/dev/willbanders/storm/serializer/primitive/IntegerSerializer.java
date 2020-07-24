@@ -10,7 +10,7 @@ import java.util.function.Function;
 
 /**
  * Deserializes a {@link Node.Type#INTEGER} value into an integer number of type
- * {@link T}. A {@link Range<T>} may be provided to require the value to be
+ * {@link T}. A {@link Range} may be provided to require the value to be
  * contained within a range.
  */
 public final class IntegerSerializer<T extends Number & Comparable<T>> implements Serializer<T> {
