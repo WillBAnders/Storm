@@ -7,7 +7,7 @@ import dev.willbanders.storm.serializer.Serializer;
 import java.util.regex.Pattern;
 
 /**
- * Deserializes a {@link Node.Type#CHARACTER} value. A {@link Pattern} may be
+ * Serializes a {@link Node.Type#CHARACTER} value. A {@link Pattern} may be
  * provided to require the value to match a regular expression.
  */
 public final class CharacterSerializer implements Serializer<Character> {
@@ -33,7 +33,7 @@ public final class CharacterSerializer implements Serializer<Character> {
     }
 
     @Override
-    public void serialize(Node node, Character value) throws SerializationException {
+    public void reserialize(Node node, Character value) throws SerializationException {
         if (value == null) {
             throw new SerializationException(node, "Expected a non-null value.");
         } else if (pattern != null && !pattern.matcher(value.toString()).matches()) {

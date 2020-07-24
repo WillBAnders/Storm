@@ -5,7 +5,7 @@ import dev.willbanders.storm.serializer.SerializationException;
 import dev.willbanders.storm.serializer.Serializer;
 
 /**
- * Deserializes a {@link Node.Type#BOOLEAN} value.
+ * Serializes a {@link Node.Type#BOOLEAN} value.
  */
 public final class BooleanSerializer implements Serializer<Boolean> {
 
@@ -22,7 +22,7 @@ public final class BooleanSerializer implements Serializer<Boolean> {
     }
 
     @Override
-    public void serialize(Node node, Boolean value) throws SerializationException {
+    public void reserialize(Node node, Boolean value) throws SerializationException {
         if (value == null) {
             throw new SerializationException(node, "Expected a non-null value.");
         }

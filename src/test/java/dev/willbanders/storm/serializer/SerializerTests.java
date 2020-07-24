@@ -255,7 +255,7 @@ class SerializerTests {
         @Test
         void testListSize() {
             List<Object> list = ImmutableList.of("first", "second", "third");
-            ListSerializer.ListSerializerImpl<String> base = ListSerializer.INSTANCE.of(StringSerializer.INSTANCE);
+            ListSerializer<String> base = ListSerializer.INSTANCE.of(StringSerializer.INSTANCE);
             Assertions.assertAll(
                     () -> testSerializer(base.size(Range.atLeast(0)), list, list, true),
                     () -> testSerializer(base.size(Range.atLeast(5)), list, list, false),
@@ -302,7 +302,7 @@ class SerializerTests {
         void testSetSize() {
             Set<Object> set = ImmutableSet.of("first", "second", "third");
             List<Object> list = ImmutableList.copyOf(set);
-            SetSerializer.SetSerializerImpl<String> base = SetSerializer.INSTANCE.of(StringSerializer.INSTANCE);
+            SetSerializer<String> base = SetSerializer.INSTANCE.of(StringSerializer.INSTANCE);
             Assertions.assertAll(
                     () -> testSerializer(base.size(Range.atLeast(1)), set, list, true),
                     () -> testSerializer(base.size(Range.atLeast(5)), set, list, false),
@@ -341,7 +341,7 @@ class SerializerTests {
         @Test
         void testMapSize() {
             Map<String, Object> map = ImmutableMap.of("x", "first", "y", "second", "z", "third");
-            MapSerializer.MapSerializerImpl<String> base = MapSerializer.INSTANCE.of(StringSerializer.INSTANCE);
+            MapSerializer<String> base = MapSerializer.INSTANCE.of(StringSerializer.INSTANCE);
             Assertions.assertAll(
                     () -> testSerializer(base.size(Range.atLeast(0)), map, map, true),
                     () -> testSerializer(base.size(Range.atLeast(5)), map, map, false),
@@ -366,13 +366,13 @@ class SerializerTests {
 
         @Test
         void testNullableDefault() {
-            NullableSerializer.NullableDeserializer<String> deserializer = NullableSerializer.INSTANCE.of(StringSerializer.INSTANCE).def("def");
+            NullableSerializer<String> serializer = NullableSerializer.INSTANCE.of(StringSerializer.INSTANCE).def("def");
             Assertions.assertAll(
-                    () -> testDeserializer(deserializer, "string", "string", true),
-                    () -> testDeserializer(deserializer, null, "def", true),
-                    () -> testReserializer(deserializer.toSerializer(false), "def", "def", true),
-                    () -> testReserializer(deserializer.toSerializer(true), "def", null, true),
-                    () -> testReserializer(deserializer.toSerializer(true), null, null, false)
+                    () -> testDeserializer(serializer, "string", "string", true),
+                    () -> testDeserializer(serializer, null, "def", true),
+                    () -> testReserializer(serializer, "def", "def", true),
+                    () -> testReserializer(serializer.convertDef(true), "def", null, true),
+                    () -> testReserializer(serializer.convertDef(true), null, null, false)
             );
         }
 
@@ -393,14 +393,14 @@ class SerializerTests {
 
         @Test
         void testOptionalDefault() {
-            OptionalSerializer.OptionalDefaultDeserializer<String> deserializer = OptionalSerializer.INSTANCE.of(StringSerializer.INSTANCE).def("def");
+            OptionalSerializer.OptionalDefaultSerializer<String> serializer = OptionalSerializer.INSTANCE.of(StringSerializer.INSTANCE).def("def");
             Assertions.assertAll(
-                    () -> testDeserializer(deserializer, "string", "string", true),
-                    () -> Assertions.assertEquals("def", Node.root().get(deserializer)),
-                    () -> testReserializer(deserializer.toSerializer(false), "def", "def", true),
+                    () -> testDeserializer(serializer, "string", "string", true),
+                    () -> Assertions.assertEquals("def", Node.root().get(serializer)),
+                    () -> testReserializer(serializer, "def", "def", true),
                     () -> {
                         Node node = Node.root();
-                        node.set("def", deserializer.toSerializer(true));
+                        node.set("def", serializer.convertDef(true));
                         Assertions.assertEquals(Node.Type.UNDEFINED, node.getType());
                     }
             );
@@ -425,10 +425,10 @@ class SerializerTests {
      * Tests that deserializing the given value equals the expected value if
      * success is true, else asserts a {@link SerializationException} is thrown.
      */
-    private void testDeserializer(Deserializer<?> deserializer, Object value, Object expected, boolean success) {
+    private void testDeserializer(Serializer<?> serializer, Object value, Object expected, boolean success) {
         Node node = Node.root();
         node.attach().setValue(value);
-        test(() -> Assertions.assertEquals(expected, node.get(deserializer)), success);
+        test(() -> Assertions.assertEquals(expected, node.get(serializer)), success);
     }
 
     /**

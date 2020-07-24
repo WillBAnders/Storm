@@ -9,7 +9,7 @@ import java.math.BigInteger;
 import java.util.function.Function;
 
 /**
- * Deserializes a {@link Node.Type#INTEGER} value into an integer number of type
+ * Serializes a {@link Node.Type#INTEGER} value into an integer number of type
  * {@link T}. A {@link Range} may be provided to require the value to be
  * contained within a range.
  */
@@ -46,7 +46,7 @@ public final class IntegerSerializer<T extends Number & Comparable<T>> implement
     }
 
     @Override
-    public void serialize(Node node, T value) throws SerializationException {
+    public void reserialize(Node node, T value) throws SerializationException {
         if (value == null) {
             throw new SerializationException(node, "Expected a non-null value.");
         } else if (!range.contains(value)) {

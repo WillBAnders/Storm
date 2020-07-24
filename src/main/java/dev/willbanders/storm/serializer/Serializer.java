@@ -3,21 +3,30 @@ package dev.willbanders.storm.serializer;
 import dev.willbanders.storm.config.Node;
 
 /**
- * Serializes values to and from a config node. This interface also supports
- * deserialization as all serializable values should be deserializable, but
- * deserialization itself is not strictly invertible.
- *
- * @see Deserializer
+ * Serializes values to and from a config node. All serializers support
+ * deserialization, but reserialization may not be supported.
  */
-public interface Serializer<T> extends Deserializer<T> {
+@FunctionalInterface
+public interface Serializer<T> {
 
     /**
-     * Serializes a value to the given config node. Serialization is a widening
+     * Deserializes a value from the given config node. This is a narrowing
+     * conversion, and thus different representations in the config
+     * may serialize to the same value, loosing information.
+     *
+     * @throws SerializationException if the config could not be deserialized
+     */
+    T deserialize(Node node) throws SerializationException;
+
+    /**
+     * Reserializes a value to the given config node. This is a widening
      * conversion, and thus the representation of a value in the config may be
      * different from what it was originally deserialized from.
      *
-     * @throws SerializationException if the value could not be serialized
+     * @throws SerializationException if the value could not be reserialized
      */
-    void serialize(Node node, T value) throws SerializationException;
+    default void reserialize(Node node, T value) throws SerializationException {
+        throw new SerializationException(node, "Reserialization is not supported for this serializer.");
+    }
 
 }

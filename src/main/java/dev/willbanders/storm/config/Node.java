@@ -3,7 +3,6 @@ package dev.willbanders.storm.config;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import dev.willbanders.storm.serializer.Deserializer;
 import dev.willbanders.storm.serializer.SerializationException;
 import dev.willbanders.storm.serializer.Serializer;
 
@@ -368,13 +367,13 @@ public final class Node {
     }
 
     /**
-     * Deserializes a value from this node using the given deserializer.
+     * Deserializes a value from this node using the given serializer.
      *
      * @throws SerializationException if the node could not be deserialized
-     * @see Deserializer#deserialize(Node)
+     * @see Serializer#deserialize(Node)
      */
-    public <T> T get(Deserializer<T> deserializer) throws SerializationException {
-        return deserializer.deserialize(this);
+    public <T> T get(Serializer<T> serializer) throws SerializationException {
+        return serializer.deserialize(this);
     }
 
     /**
@@ -383,24 +382,24 @@ public final class Node {
      *
      * @throws SerializationException if the node could not be deserialized
      * @see #get(String)
-     * @see #get(Deserializer)
+     * @see #get(Serializer)
      */
-    public <T> T get(String path, Deserializer<T> deserializer) throws SerializationException {
-        return get(path).get(deserializer);
+    public <T> T get(String path, Serializer<T> serializer) throws SerializationException {
+        return get(path).get(serializer);
     }
 
     /**
-     * Serializes the value to this node using the given serializer.
+     * Reserializes the value to this node using the given serializer.
      *
      * @throws SerializationException if the node could not be serialized
-     * @see Serializer#serialize(Node, Object) 
+     * @see Serializer#reserialize(Node, Object) 
      */
     public <T> void set(T value, Serializer<T> serializer) throws SerializationException {
-        serializer.serialize(this, value);
+        serializer.reserialize(this, value);
     }
 
     /**
-     * Serializes the value to the node located at the given path relative to
+     * Reserializes the value to the node located at the given path relative to
      * this node using the given serializer.
      *
      * @throws SerializationException if the node could not be serialized

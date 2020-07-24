@@ -1,69 +1,48 @@
 package dev.willbanders.storm.serializer.primitive;
 
 import dev.willbanders.storm.config.Node;
-import dev.willbanders.storm.serializer.Deserializer;
 import dev.willbanders.storm.serializer.SerializationException;
 import dev.willbanders.storm.serializer.Serializer;
 
+import java.util.Objects;
 import java.util.Optional;
 
-public final class OptionalSerializer<T> {
+public final class OptionalSerializer<T> implements Serializer<Optional<T>> {
 
-    public static final OptionalSerializerImpl<Object> INSTANCE = new OptionalSerializerImpl<>(null);
+    public static final OptionalSerializer<Object> INSTANCE = new OptionalSerializer<>(null);
 
-    public interface OptionalDeserializer<T> extends Deserializer<Optional<T>> {
+    private final Serializer<T> serializer;
 
-        OptionalDefaultDeserializer<T> def(T def);
-
+    private OptionalSerializer(Serializer<T> serializer) {
+        this.serializer = serializer;
     }
 
-    public static class OptionalSerializerImpl<T> implements OptionalDeserializer<T>, Serializer<Optional<T>> {
-
-        private final Serializer<T> serializer;
-
-        private OptionalSerializerImpl(Serializer<T> serializer) {
-            this.serializer = serializer;
+    @Override
+    public Optional<T> deserialize(Node node) throws SerializationException {
+        if (node.getType() == Node.Type.UNDEFINED) {
+            return Optional.empty();
         }
-
-        @Override
-        public Optional<T> deserialize(Node node) throws SerializationException {
-            if (node.getType() == Node.Type.UNDEFINED) {
-                return Optional.empty();
-            }
-            return Optional.ofNullable(node.get(serializer));
-        }
-
-        @Override
-        public void serialize(Node node, Optional<T> value) throws SerializationException {
-            if (value.isPresent()) {
-                node.set(value.get(), serializer);
-            } else {
-                node.detach();
-            }
-        }
-
-        public <T> OptionalDeserializer<T> of(Deserializer<T> deserializer) {
-            return new OptionalSerializerImpl<>((Serializer<T>) deserializer);
-        }
-
-        public <T> OptionalSerializerImpl<T> of(Serializer<T> serializer) {
-            return new OptionalSerializerImpl<>(serializer);
-        }
-
-        @Override
-        public OptionalDefaultDeserializer<T> def(T def) {
-            return new OptionalDefaultSerializer<>(serializer, def, false);
-        }
-
+        return Optional.ofNullable(node.get(serializer));
     }
 
-    public interface OptionalDefaultDeserializer<T> extends Deserializer<T> {
-
-        OptionalDefaultSerializer<T> toSerializer(boolean convertDefault);
-
+    @Override
+    public void reserialize(Node node, Optional<T> value) throws SerializationException {
+        if (value.isPresent()) {
+            node.set(value.get(), serializer);
+        } else {
+            node.detach();
+        }
     }
 
-    public static class OptionalDefaultSerializer<T> implements OptionalDefaultDeserializer<T>, Serializer<T> {
+    public <T> OptionalSerializer<T> of(Serializer<T> serializer) {
+        return new OptionalSerializer<>(serializer);
+    }
+
+    public OptionalDefaultSerializer<T> def(T def) {
+        return new OptionalDefaultSerializer<>(serializer, def, false);
+    }
+
+    public static class OptionalDefaultSerializer<T> implements Serializer<T> {
 
         private final Serializer<T> serializer;
         private final T def;
@@ -84,19 +63,18 @@ public final class OptionalSerializer<T> {
         }
 
         @Override
-        public void serialize(Node node, T value) throws SerializationException {
-            if (value == null) {
+        public void reserialize(Node node, T value) throws SerializationException {
+            if (value == null && def != null) {
                 throw new SerializationException(node, "Expected a non-null value.");
-            } else if (convertDef && value.equals(def)) {
+            } else if (convertDef && Objects.equals(value, def)) {
                 node.detach();
             } else {
                 node.set(value, serializer);
             }
         }
 
-        @Override
-        public OptionalDefaultSerializer<T> toSerializer(boolean convertDefault) {
-            return new OptionalDefaultSerializer<>(serializer, def, convertDefault);
+        public OptionalDefaultSerializer<T> convertDef(boolean convertDef) {
+            return new OptionalDefaultSerializer<>(serializer, def, convertDef);
         }
 
     }

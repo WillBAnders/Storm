@@ -1,72 +1,54 @@
 package dev.willbanders.storm.serializer.primitive;
 
 import dev.willbanders.storm.config.Node;
-import dev.willbanders.storm.serializer.Deserializer;
 import dev.willbanders.storm.serializer.SerializationException;
 import dev.willbanders.storm.serializer.Serializer;
 
-public final class NullableSerializer {
+import java.util.Objects;
 
-    public static final NullableSerializerImpl<Object> INSTANCE = new NullableSerializerImpl<>(null, null, false);
+public final class NullableSerializer<T> implements Serializer<T> {
 
-    public interface NullableDeserializer<T> extends Deserializer<T> {
+    public static final NullableSerializer<Object> INSTANCE = new NullableSerializer<>(null, null, false);
 
-        NullableDeserializer<T> def(T def);
+    private final Serializer<T> serializer;
+    private final T def;
+    private final boolean convertDef;
 
-        NullableSerializerImpl<T> toSerializer(boolean convertDef);
-
+    private NullableSerializer(Serializer<T> serializer, T def, boolean convertDef) {
+        this.serializer = serializer;
+        this.def = def;
+        this.convertDef = convertDef;
     }
 
-    public static class NullableSerializerImpl<T> implements NullableDeserializer<T>, Serializer<T> {
-
-        private final Serializer<T> serializer;
-        private final T def;
-        private final boolean convertDef;
-
-        private NullableSerializerImpl(Serializer<T> serializer, T def, boolean convertDef) {
-            this.serializer = serializer;
-            this.def = def;
-            this.convertDef = convertDef;
+    @Override
+    public T deserialize(Node node) throws SerializationException {
+        if (node.getType() == Node.Type.NULL) {
+            return def;
         }
+        return node.get(serializer);
+    }
 
-        @Override
-        public T deserialize(Node node) throws SerializationException {
-            if (node.getType() == Node.Type.NULL) {
-                return def;
-            }
-            return node.get(serializer);
+    @Override
+    public void reserialize(Node node, T value) throws SerializationException {
+        if (value == null && def != null) {
+            throw new SerializationException(node, "Expected a non-null value.");
+        } else if (value == null || convertDef && Objects.equals(value, def)) {
+            node.attach().setValue(null);
+        } else {
+            node.set(value, serializer);
         }
+    }
 
-        @Override
-        public void serialize(Node node, T value) throws SerializationException {
-            if (value == null && def != null) {
-                throw new SerializationException(node, "Expected a non-null value.");
-            }
-            if (value == null || convertDef && value.equals(def)) {
-                node.attach().setValue(null);
-            } else {
-                node.set(value, serializer);
-            }
-        }
+    public <T> NullableSerializer<T> of(Serializer<T> serializer) {
+        return new NullableSerializer<>(serializer, null, false);
+    }
 
-        public <T> NullableDeserializer<T> of(Deserializer<T> deserializer) {
-            return new NullableSerializerImpl<>((Serializer<T>) deserializer, null, false);
-        }
+    public NullableSerializer<T> def(T def) {
+        return new NullableSerializer<>(serializer, def, false);
+    }
 
-        public <T> NullableSerializerImpl<T> of(Serializer<T> serializer) {
-            return new NullableSerializerImpl<>(serializer, null, false);
-        }
-
-        @Override
-        public NullableDeserializer<T> def(T def) {
-            return new NullableSerializerImpl<>(serializer, def, false);
-        }
-
-        @Override
-        public NullableSerializerImpl<T> toSerializer(boolean convertDefault) {
-            return new NullableSerializerImpl<>(serializer, def, convertDefault);
-        }
-
+    public NullableSerializer<T> convertDef(boolean convertDef) {
+        return new NullableSerializer<>(serializer, def, convertDef);
     }
 
 }
