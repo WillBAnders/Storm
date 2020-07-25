@@ -2,6 +2,7 @@ package dev.willbanders.storm.format;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.sun.org.apache.xpath.internal.Arg;
 import dev.willbanders.storm.config.Node;
 import dev.willbanders.storm.format.storm.StormGenerator;
 import dev.willbanders.storm.format.storm.StormParser;
@@ -189,6 +190,39 @@ public class StormFormatTests {
                 )
         );
         test(input, value, Node.Type.OBJECT);
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void testDiagnosticRange(String test, String input, Diagnostic.Range range) {
+        ParseException e = Assertions.assertThrows(ParseException.class, () -> StormParser.parse(input));
+        Assertions.assertAll(
+                () -> Assertions.assertEquals(range.getIndex(), e.getDiagnostic().getRange().getIndex()),
+                () -> Assertions.assertEquals(range.getLine(), e.getDiagnostic().getRange().getLine()),
+                () -> Assertions.assertEquals(range.getColumn(), e.getDiagnostic().getRange().getColumn()),
+                () -> Assertions.assertEquals(range.getLength(), e.getDiagnostic().getRange().getLength())
+        );
+    }
+
+    private static Stream<Arguments> testDiagnosticRange() {
+        return Stream.of(
+                Arguments.of("Empty Character", "\'\'", Diagnostic.range(0, 1, 1, 2)),
+                Arguments.of("Too Many Characters", "\'abc\'", Diagnostic.range(0, 1, 1, 5)),
+                Arguments.of("Unterminated Character", "\'c", Diagnostic.range(0, 1, 1, 2)),
+                Arguments.of("Unterminated String", "\"abc", Diagnostic.range(0, 1, 1, 4)),
+                Arguments.of("Invalid Escape", "\"\\c\"", Diagnostic.range(1, 1, 2, 2)),
+                Arguments.of("Invalid Unicode Escape", "\"\\u1A#\"", Diagnostic.range(1, 1, 2, 5)),
+                Arguments.of("Invalid Value", "#", Diagnostic.range(0, 1, 1, 1)),
+                Arguments.of("Extra Value", "1 2", Diagnostic.range(2, 1, 3, 1)),
+                Arguments.of("Invalid Value Separator", "[1 2]", Diagnostic.range(3, 1, 4, 1)),
+                Arguments.of("Unterminated Array", "[1, 2", Diagnostic.range(4, 1, 5, 1)),
+                Arguments.of("Invalid Property Separator", "{x=1 y=2}", Diagnostic.range(5, 1, 6, 1)),
+                Arguments.of("Unterminated Object", "{x=1, y=2", Diagnostic.range(8, 1, 9, 1)),
+                Arguments.of("Invalid Property Key", "{\"x\"=1}", Diagnostic.range(1, 1, 2, 3)),
+                Arguments.of("Invalid Property Key-Value Separator", "{x1}", Diagnostic.range(2, 1, 3, 1)),
+                Arguments.of("Missing Property Equals And Value", "{x", Diagnostic.range(1, 1, 2, 1)),
+                Arguments.of("Missing Property Value", "{x=", Diagnostic.range(1, 1, 2, 2))
+        );
     }
 
     void test(String input, Object value, Node.Type type) {

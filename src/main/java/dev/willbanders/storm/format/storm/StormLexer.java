@@ -124,14 +124,14 @@ public final class StormLexer extends Lexer<StormTokenType> {
                         throw error(Diagnostic.builder()
                                 .summary("Invalid unicode escape character.")
                                 .details("A unicode escape is in the form \\uXXXX, where X is a hexadecimal digit (0-9 & A-F). If a literal backslash is desired, use an escape as in \"abc\\\\123\".")
-                                .range(Diagnostic.range(range.getIndex() + range.getLength(), range.getLine(), range.getColumn() + range.getLength(), i + 2)));
+                                .range(Diagnostic.range(range.getIndex() + range.getLength() - 1, range.getLine(), range.getColumn() + range.getLength() - 1, i + 3)));
                     }
                 }
             } else if (!match("[bfnrt\'\"\\\\]") && chars.has(0)) {
                 throw error(Diagnostic.builder()
                         .summary("Invalid escape character.")
                         .details("An escape is in the form \\char, where char is one of b, f, n, r, t, \', \", and \\. If a literal backslash is desired, use an escape as in \"abc\\\\123\".")
-                        .range(Diagnostic.range(range.getIndex(), range.getLine(), range.getColumn(), 2)));
+                        .range(Diagnostic.range(range.getIndex() + range.getLength() - 1, range.getLine(), range.getColumn() + range.getLength() - 1, 2)));
             }
         } else {
             chars.advance();
