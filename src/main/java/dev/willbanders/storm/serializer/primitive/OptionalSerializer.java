@@ -7,6 +7,17 @@ import dev.willbanders.storm.serializer.Serializer;
 import java.util.Objects;
 import java.util.Optional;
 
+/**
+ * Serializes values which may be {@link Node.Type#UNDEFINED}, delegating to
+ * another serializer for other types. This serializer may return an {@link
+ * Optional} or define another default value to be used instead.
+ *
+ * The default behavior for reserialization is to keep the default value as-is.
+ * For example, an optional serializer with a default of {@code 0} will
+ * serialize {@code 0} to the value itself, not undefined. This behavior can be
+ * changed by setting {@link OptionalDefaultSerializer#convertDef(boolean)} to
+ * {@code true}.
+ */
 public final class OptionalSerializer<T> implements Serializer<Optional<T>> {
 
     public static final OptionalSerializer<Object> INSTANCE = new OptionalSerializer<>(null);
@@ -34,10 +45,21 @@ public final class OptionalSerializer<T> implements Serializer<Optional<T>> {
         }
     }
 
+    /**
+     * Returns a new OptionalSerializer that delegates to the given serializer
+     * if the node value is not {@link Node.Type#UNDEFINED}.
+     */
     public <T> OptionalSerializer<T> of(Serializer<T> serializer) {
         return new OptionalSerializer<>(serializer);
     }
 
+    /**
+     * Sets the default value for when the node is {@link Node.Type#UNDEFINED}.
+     * By default, this will be reserialized to the corresponding value and not
+     * converted to undefined.
+     *
+     * @see OptionalDefaultSerializer#convertDef(boolean)
+     */
     public OptionalDefaultSerializer<T> def(T def) {
         return new OptionalDefaultSerializer<>(serializer, def, false);
     }
@@ -73,6 +95,10 @@ public final class OptionalSerializer<T> implements Serializer<Optional<T>> {
             }
         }
 
+        /**
+         * True if the default value should be reserialized to {@code undefined}
+         * instead of it's normal value. The default behavior is {@code false}.
+         */
         public OptionalDefaultSerializer<T> convertDef(boolean convertDef) {
             return new OptionalDefaultSerializer<>(serializer, def, convertDef);
         }

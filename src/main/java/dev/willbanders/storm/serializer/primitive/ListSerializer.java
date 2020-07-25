@@ -9,6 +9,11 @@ import dev.willbanders.storm.serializer.Serializer;
 
 import java.util.List;
 
+/**
+ * Serializes a {@link Node.Type#ARRAY} value into a {@link List} of {@link T}.
+ * A {@link Range} may be provided to require the size of the list to be
+ * contained within a range.
+ */
 public final class ListSerializer<T> implements Serializer<List<T>> {
 
     public static final ListSerializer<Object> INSTANCE = new ListSerializer<>(null, null);
@@ -44,10 +49,18 @@ public final class ListSerializer<T> implements Serializer<List<T>> {
         }
     }
 
+    /**
+     * Returns a new ListSerializer that delegates to the given serializer for
+     * serializing elements.
+     */
     public <T> ListSerializer<T> of(Serializer<T> serializer) {
         return new ListSerializer<>(serializer, Range.all());
     }
 
+    /**
+     * Returns a new serializer requiring the size of the list to be contained
+     * within the given range.
+     */
     public ListSerializer<T> size(Range<Integer> size) {
         return new ListSerializer<>(serializer, size);
     }

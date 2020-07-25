@@ -9,6 +9,11 @@ import dev.willbanders.storm.serializer.Serializer;
 
 import java.util.Map;
 
+/**
+ * Serializes a {@link Node.Type#OBJECT} value into a {@link Map} with String
+ * keys and values of type {@link T}. A {@link Range} may be provided to require
+ * the size of the map to be contained within a range.
+ */
 public final class MapSerializer<T> implements Serializer<Map<String, T>> {
 
     public static final MapSerializer<Object> INSTANCE = new MapSerializer<>(null, Range.all());
@@ -44,10 +49,18 @@ public final class MapSerializer<T> implements Serializer<Map<String, T>> {
         }
     }
 
+    /**
+     * Returns a new MapSerializer that delegates to the given serializer for
+     * serializing values.
+     */
     public <T> MapSerializer<T> of(Serializer<T> serializer) {
         return new MapSerializer<>(serializer, Range.all());
     }
 
+    /**
+     * Returns a new serializer requiring the size of the map to be contained
+     * within the given range.
+     */
     public MapSerializer<T> size(Range<Integer> size) {
         return new MapSerializer<>(serializer, size);
     }

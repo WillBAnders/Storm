@@ -12,6 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Serializes a {@link Node.Type#ARRAY} value into a {@link Set} of {@link T}.
+ * Values in the array must be distinct. A {@link Range} may be provided to
+ * require the size of the set to be contained within a range.
+ */
 public final class SetSerializer<T> implements Serializer<Set<T>> {
 
     public static final SetSerializer<Object> INSTANCE = new SetSerializer<>(null, Range.all());
@@ -49,13 +54,20 @@ public final class SetSerializer<T> implements Serializer<Set<T>> {
         node.set(Lists.newArrayList(value), delegate);
     }
 
+    /**
+     * Returns a new SetSerializer that delegates to the given serializer for
+     * serializing elements.
+     */
     public <T> SetSerializer<T> of(Serializer<T> serializer) {
         return new SetSerializer<>(serializer, Range.all());
     }
 
+    /**
+     * Returns a new serializer requiring the size of the set to be contained
+     * within the given range.
+     */
     public SetSerializer<T> size(Range<Integer> size) {
         return new SetSerializer<>(serializer, size);
     }
-
 
 }
