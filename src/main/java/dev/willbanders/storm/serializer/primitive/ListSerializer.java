@@ -13,6 +13,8 @@ import java.util.List;
  * Serializes a {@link Node.Type#ARRAY} value into a {@link List} of {@link T}.
  * A {@link Range} may be provided to require the size of the list to be
  * contained within a range.
+ *
+ * @see TupleSerializer for non-homogeneous lists
  */
 public final class ListSerializer<T> implements Serializer<List<T>> {
 

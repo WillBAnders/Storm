@@ -12,9 +12,11 @@ import dev.willbanders.storm.serializer.primitive.IntegerSerializer;
 import dev.willbanders.storm.serializer.primitive.ListSerializer;
 import dev.willbanders.storm.serializer.primitive.MapSerializer;
 import dev.willbanders.storm.serializer.primitive.NullableSerializer;
+import dev.willbanders.storm.serializer.primitive.ObjectSerializer;
 import dev.willbanders.storm.serializer.primitive.OptionalSerializer;
 import dev.willbanders.storm.serializer.primitive.SetSerializer;
 import dev.willbanders.storm.serializer.primitive.StringSerializer;
+import dev.willbanders.storm.serializer.primitive.TupleSerializer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -324,6 +326,38 @@ class SerializerTests {
     }
 
     @Nested
+    class TupleTests {
+
+        @ParameterizedTest
+        @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testTuple")
+        void testTuple(String test, List<Serializer<?>> serializers, List<?> values, boolean success) {
+            testSerializer(TupleSerializer.INSTANCE.of(serializers), values, values, success);
+        }
+
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    private static Stream<Arguments> testTuple() {
+        return Stream.of(
+                Arguments.of("Empty", ImmutableList.of(), ImmutableList.of(), true),
+                Arguments.of("Boolean", ImmutableList.of(BooleanSerializer.INSTANCE), ImmutableList.of(true), true),
+                Arguments.of("Boolean, Character, String",
+                        ImmutableList.of(BooleanSerializer.INSTANCE, CharacterSerializer.INSTANCE, StringSerializer.INSTANCE),
+                        ImmutableList.of(true, 'c', "string"),
+                        true),
+                Arguments.of("Invalid Length",
+                        ImmutableList.of(BooleanSerializer.INSTANCE),
+                        ImmutableList.of(true, false),
+                        false),
+                Arguments.of("Invalid Type",
+                        ImmutableList.of(BooleanSerializer.INSTANCE, CharacterSerializer.INSTANCE),
+                        ImmutableList.of(true, "string"),
+                        false)
+        );
+    }
+
+    @Nested
     class MapTests {
 
         @ParameterizedTest
@@ -349,6 +383,38 @@ class SerializerTests {
             );
         }
 
+    }
+
+    @Nested
+    class ObjectTests {
+
+        @ParameterizedTest
+        @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testObject")
+        void testObject(String test, Map<String, Serializer<?>> serializers, Map<String, ?> values, boolean success) {
+            testSerializer(ObjectSerializer.INSTANCE.of(serializers), values, values, success);
+        }
+
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    private static Stream<Arguments> testObject() {
+        return Stream.of(
+                Arguments.of("Empty", ImmutableMap.of(), ImmutableMap.of(), true),
+                Arguments.of("Boolean", ImmutableMap.of("b", BooleanSerializer.INSTANCE), ImmutableMap.of("b", true), true),
+                Arguments.of("Boolean, Character, String",
+                        ImmutableMap.of("b", BooleanSerializer.INSTANCE, "c", CharacterSerializer.INSTANCE, "s", StringSerializer.INSTANCE),
+                        ImmutableMap.of("b", true, "c", 'c', "s", "string"),
+                        true),
+                Arguments.of("Missing Property",
+                        ImmutableMap.of("x", BooleanSerializer.INSTANCE, "y", BooleanSerializer.INSTANCE),
+                        ImmutableMap.of("x", true),
+                        false),
+                Arguments.of("Unexpected Property",
+                        ImmutableMap.of("x", BooleanSerializer.INSTANCE, "y", BooleanSerializer.INSTANCE),
+                        ImmutableMap.of("z", false),
+                        false)
+        );
     }
 
     @Nested

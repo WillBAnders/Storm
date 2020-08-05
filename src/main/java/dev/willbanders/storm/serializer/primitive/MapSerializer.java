@@ -13,6 +13,8 @@ import java.util.Map;
  * Serializes a {@link Node.Type#OBJECT} value into a {@link Map} with String
  * keys and values of type {@link T}. A {@link Range} may be provided to require
  * the size of the map to be contained within a range.
+ *
+ * @see ObjectSerializer for non-homogeneous maps
  */
 public final class MapSerializer<T> implements Serializer<Map<String, T>> {
 
