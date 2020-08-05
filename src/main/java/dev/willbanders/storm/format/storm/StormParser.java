@@ -1,6 +1,7 @@
 package dev.willbanders.storm.format.storm;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import dev.willbanders.storm.config.Node;
 import dev.willbanders.storm.format.Diagnostic;
@@ -9,10 +10,8 @@ import dev.willbanders.storm.format.Parser;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -32,28 +31,27 @@ public final class StormParser extends Parser<StormTokenType> {
     @Override
     protected Node parse() throws ParseException {
         Node node = Node.root();
-        node.attach().setValue(parseRoot());
+        parseRoot(node);
         return node;
     }
 
-    private Object parseRoot() throws ParseException {
+    private void parseRoot(Node node) throws ParseException {
         while (match(StormTokenType.NEWLINE)) {}
         if (!tokens.has(0)) {
-            return new LinkedHashMap<>();
+            node.attach().setValue(new LinkedHashMap<>());
         } else if (!peek(StormTokenType.IDENTIFIER) || peek(Arrays.asList("null", "true", "false"))) {
             context.addFirst(tokens.get(0).getRange());
-            Object value = parseValue();
+            parseValue(node);
             while (match(StormTokenType.NEWLINE)) {}
             require(!tokens.has(0), () -> Diagnostic.builder()
                     .summary("Expected end of input.")
                     .details("The config was parsed as a single value, but more input was provided. Multiple values must be included in an array or object, such as [1, 2, 3] or {x = 1, y = 2, z = 3}."));
             context.removeLast();
-            return value;
         } else {
-            Map<String, Object> map = new LinkedHashMap<>();
+            node.attach().setValue(Maps.newLinkedHashMap());
+            Map<String, Diagnostic.Range> defined = Maps.newHashMap();
             while (tokens.has(0)) {
-                Map.Entry<String, Object> property = parseProperty();
-                map.put(property.getKey(), property.getValue());
+                parseProperty(node, defined);
                 if (tokens.has(0)) {
                     require(match(Arrays.asList(",", StormTokenType.NEWLINE)), () -> Diagnostic.builder()
                             .summary("Expected a comma/newline separator after property.")
@@ -62,30 +60,29 @@ public final class StormParser extends Parser<StormTokenType> {
                 }
                 context.removeLast();
             }
-            return map;
         }
     }
 
-    private Object parseValue() throws ParseException {
+    private void parseValue(Node node) throws ParseException {
         Preconditions.checkState(tokens.has(0) && !peek(StormTokenType.NEWLINE), "Broken parser invariant.");
         if (peek("{")) {
-            return parseObject();
+            parseObject(node);
         } else if (peek("[")) {
-            return parseArray();
+            parseArray(node);
         } else if (match("null")) {
-            return null;
+            node.attach().setValue(null);
         } else if (match(Arrays.asList("true", "false"))) {
-            return Boolean.parseBoolean(tokens.get(-1).getLiteral());
+            node.attach().setValue(Boolean.parseBoolean(tokens.get(-1).getLiteral()));
         } else if (match(StormTokenType.INTEGER)) {
-            return new BigInteger(tokens.get(-1).getLiteral());
+            node.attach().setValue(new BigInteger(tokens.get(-1).getLiteral()));
         } else if (match(StormTokenType.DECIMAL)) {
-            return new BigDecimal(tokens.get(-1).getLiteral());
+            node.attach().setValue(new BigDecimal(tokens.get(-1).getLiteral()));
         } else if (match(StormTokenType.CHARACTER)) {
             String literal = tokens.get(-1).getLiteral();
-            return unescape(literal.substring(1, literal.length() - 1)).charAt(0);
+            node.attach().setValue(unescape(literal.substring(1, literal.length() - 1)).charAt(0));
         } else if (match(StormTokenType.STRING)) {
             String literal = tokens.get(-1).getLiteral();
-            return unescape(literal.substring(1, literal.length() - 1));
+            node.attach().setValue(unescape(literal.substring(1, literal.length() - 1)));
         } else {
             throw error(Diagnostic.builder()
                     .summary("Invalid value.")
@@ -94,16 +91,16 @@ public final class StormParser extends Parser<StormTokenType> {
         }
     }
 
-    private List<Object> parseArray() throws ParseException {
+    private void parseArray(Node node) throws ParseException {
         Preconditions.checkState(match("["), "Broken parser invariant.");
         while (match(StormTokenType.NEWLINE)) {}
-        List<Object> list = new ArrayList<>();
+        node.attach().setValue(Lists.newArrayList());
         while (!match("]")) {
             require(tokens.has(0), () -> Diagnostic.builder()
                     .summary("Unexpected end of input.")
                     .details("Expected to parse an array value, but reached the end of available input. This could be caused by a missing closing bracket ']'."));
             context.addLast(tokens.get(0).getRange());
-            list.add(parseValue());
+            parseValue(node.resolve(node.getList().size()));
             if (!peek("]")) {
                 require(match(Arrays.asList(",", StormTokenType.NEWLINE)), () -> Diagnostic.builder()
                         .summary("Expected a comma/newline separator or the closing bracket after array value.")
@@ -112,16 +109,15 @@ public final class StormParser extends Parser<StormTokenType> {
             }
             context.removeLast();
         }
-        return list;
     }
 
-    private Map<String, Object> parseObject() throws ParseException {
+    private void parseObject(Node node) throws ParseException {
         Preconditions.checkState(match("{"), "Broken parser invariant.");
         while (match(StormTokenType.NEWLINE)) {}
-        Map<String, Object> map = new LinkedHashMap<>();
+        node.attach().setValue(Maps.newLinkedHashMap());
+        Map<String, Diagnostic.Range> defined = Maps.newHashMap();
         while (!match("}")) {
-            Map.Entry<String, Object> property = parseProperty();
-            map.put(property.getKey(), property.getValue());
+            parseProperty(node, defined);
             if (!peek("}")) {
                 require(match(Arrays.asList(",", StormTokenType.NEWLINE)), () -> Diagnostic.builder()
                         .summary("Expected a comma/newline separator or the closing brace after property.")
@@ -130,14 +126,21 @@ public final class StormParser extends Parser<StormTokenType> {
             }
             context.removeLast();
         }
-        return map;
     }
 
-    private Map.Entry<String, Object> parseProperty() {
+    private void parseProperty(Node node, Map<String, Diagnostic.Range> defined) throws ParseException {
         require(match(StormTokenType.IDENTIFIER), () -> Diagnostic.builder()
                 .summary("Expected an identifier for property key.")
                 .details("A property has the form 'key = value', where key is an identifier (a-z followed by a-z, _, or -). Strings and other symbols are not allowed."));
         String key = tokens.get(-1).getLiteral();
+        if (defined.containsKey(key)) {
+            context.push(defined.get(key));
+            throw error(Diagnostic.builder()
+                    .summary("Property key is already defined.")
+                    .details("Object properties must be unique, and thus the same key cannot be used in more than one property.")
+                    .range(tokens.get(-1).getRange()));
+        }
+        defined.put(key, tokens.get(-1).getRange());
         context.addLast(tokens.get(-1).getRange());
         if (!tokens.has(0) || peek(StormTokenType.NEWLINE)) {
             throw error(Diagnostic.builder()
@@ -156,7 +159,7 @@ public final class StormParser extends Parser<StormTokenType> {
                     .details("A property has the form 'key = value', and thus requires a value following the key and equals sign.")
                     .range(Diagnostic.range(start.getIndex(), start.getLine(), start.getColumn(), end.getIndex() + end.getLength() - start.getIndex())));
         }
-        return Maps.immutableEntry(key, parseValue());
+        parseValue(node.resolve(key));
     }
 
     private String unescape(String string) {

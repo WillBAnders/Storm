@@ -221,7 +221,8 @@ public class StormFormatTests {
                 Arguments.of("Invalid Property Key", "{\"x\"=1}", Diagnostic.range(1, 1, 2, 3)),
                 Arguments.of("Invalid Property Key-Value Separator", "{x1}", Diagnostic.range(2, 1, 3, 1)),
                 Arguments.of("Missing Property Equals And Value", "{x", Diagnostic.range(1, 1, 2, 1)),
-                Arguments.of("Missing Property Value", "{x=", Diagnostic.range(1, 1, 2, 2))
+                Arguments.of("Missing Property Value", "{x=", Diagnostic.range(1, 1, 2, 2)),
+                Arguments.of("Duplicate Property Key", "{x=1, x=2}", Diagnostic.range(6, 1, 7, 1))
         );
     }
 
