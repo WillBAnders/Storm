@@ -8,6 +8,7 @@ import dev.willbanders.storm.config.Node;
 import dev.willbanders.storm.serializer.primitive.BooleanSerializer;
 import dev.willbanders.storm.serializer.primitive.CharacterSerializer;
 import dev.willbanders.storm.serializer.primitive.DecimalSerializer;
+import dev.willbanders.storm.serializer.primitive.EnumSerializer;
 import dev.willbanders.storm.serializer.primitive.IntegerSerializer;
 import dev.willbanders.storm.serializer.primitive.ListSerializer;
 import dev.willbanders.storm.serializer.primitive.MapSerializer;
@@ -322,6 +323,38 @@ class SerializerTests {
                 Arguments.of("Integer Element", IntegerSerializer.BIG_INTEGER, ImmutableSet.of(BigInteger.ONE)),
                 Arguments.of("Character Elements", CharacterSerializer.INSTANCE, ImmutableSet.of('a', 'b', 'c')),
                 Arguments.of("Invalid Type", StringSerializer.INSTANCE, null)
+        );
+    }
+
+    public enum TestEnum {
+        FIRST, SECOND, THIRD
+    }
+
+    @Nested
+    class EnumTests {
+
+        @ParameterizedTest
+        @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testEnum")
+        void testEnum(String test, TestEnum value) {
+            testSerializer(EnumSerializer.INSTANCE.of(TestEnum.class), value, value != null ? value.name() : null, value != null);
+        }
+
+        @Test
+        void testEnumCaseInsensitive() {
+            EnumSerializer<TestEnum> serializer = EnumSerializer.INSTANCE.of(TestEnum.class);
+            Assertions.assertAll(
+                    () -> testDeserializer(serializer, "first", TestEnum.FIRST, true),
+                    () -> testDeserializer(serializer, "Second", TestEnum.SECOND, true),
+                    () -> testDeserializer(serializer, "THIRD", TestEnum.THIRD, true)
+            );
+        }
+
+    }
+
+    private static Stream<Arguments> testEnum() {
+        return Stream.of(
+                Arguments.of("Valid Constant", TestEnum.FIRST),
+                Arguments.of("Invalid Constant", null)
         );
     }
 
