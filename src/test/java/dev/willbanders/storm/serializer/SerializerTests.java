@@ -268,8 +268,6 @@ class SerializerTests {
 
     }
 
-    @ParameterizedTest
-    @MethodSource
     private static Stream<Arguments> testList() {
         return Stream.of(
                 Arguments.of("Empty", BooleanSerializer.INSTANCE, ImmutableList.of()),
@@ -315,8 +313,6 @@ class SerializerTests {
 
     }
 
-    @ParameterizedTest
-    @MethodSource
     private static Stream<Arguments> testSet() {
         return Stream.of(
                 Arguments.of("Empty", BooleanSerializer.INSTANCE, ImmutableSet.of()),
@@ -369,8 +365,6 @@ class SerializerTests {
 
     }
 
-    @ParameterizedTest
-    @MethodSource
     private static Stream<Arguments> testTuple() {
         return Stream.of(
                 Arguments.of("Empty", ImmutableList.of(), ImmutableList.of(), true),
@@ -429,8 +423,6 @@ class SerializerTests {
 
     }
 
-    @ParameterizedTest
-    @MethodSource
     private static Stream<Arguments> testObject() {
         return Stream.of(
                 Arguments.of("Empty", ImmutableMap.of(), ImmutableMap.of(), true),
@@ -507,8 +499,6 @@ class SerializerTests {
 
     }
 
-    @ParameterizedTest
-    @MethodSource
     private static Stream<Arguments> testMap() {
         return Stream.of(
                 Arguments.of("Empty", BooleanSerializer.INSTANCE, ImmutableMap.of()),
