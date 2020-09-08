@@ -1,11 +1,13 @@
 package dev.willbanders.storm.serializer.primitive;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import dev.willbanders.storm.config.Node;
 import dev.willbanders.storm.serializer.SerializationException;
 import dev.willbanders.storm.serializer.Serializer;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -45,7 +47,13 @@ public final class ObjectSerializer<T> implements Serializer<Map<String, ? exten
             Set<String> unexpected = Sets.difference(value.keySet(), serializers.keySet());
             throw new SerializationException(node, "Expected properties " + expected + " and not " + unexpected + ".");
         }
-        node.attach().setValue(Maps.newHashMap());
+        if (node.getType() == Node.Type.OBJECT) {
+            Lists.newArrayList(node.getMap().values()).stream()
+                    .filter(n -> !value.containsKey(n.getKey()))
+                    .forEach(Node::detach);
+        } else {
+            node.attach().setValue(Maps.newHashMap());
+        }
         for (Map.Entry<String, ? extends T> entry : value.entrySet()) {
             try {
                 node.set(entry.getKey(), entry.getValue(), (Serializer<T>) serializers.get(entry.getKey()));

@@ -1,6 +1,7 @@
 package dev.willbanders.storm.serializer.primitive;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Range;
 import dev.willbanders.storm.config.Node;
@@ -45,7 +46,13 @@ public final class MapSerializer<T> implements Serializer<Map<String, T>> {
         } else if (!size.contains(value.size())) {
             throw new SerializationException(node, "Expected the size of the map to be in range " + size + ".");
         }
-        node.attach().setValue(ImmutableMap.of());
+        if (node.getType() == Node.Type.OBJECT) {
+            Lists.newArrayList(node.getMap().values()).stream()
+                    .filter(n -> !value.containsKey(n.getKey()))
+                    .forEach(Node::detach);
+        } else {
+            node.attach().setValue(ImmutableMap.of());
+        }
         for (Map.Entry<String, T> entry : value.entrySet()) {
             node.set(entry.getKey(), entry.getValue(), serializer);
         }

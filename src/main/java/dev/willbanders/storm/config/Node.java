@@ -49,6 +49,7 @@ public final class Node {
 
     private Node parent;
     private Object key;
+    private String comment = "";
     private Type type;
     private Object value = null;
 
@@ -108,6 +109,20 @@ public final class Node {
             node = node.parent;
         }
         return Lists.reverse(path);
+    }
+
+    /**
+     * Returns the comment for this node. An empty string represents no comment.
+     */
+    public String getComment() {
+        return comment;
+    }
+
+    /**
+     * Sets the comment for this node. An empty string represents no comment.
+     */
+    public void setComment(String comment) {
+        this.comment = comment;
     }
 
     /**

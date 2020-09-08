@@ -45,7 +45,13 @@ public final class ListSerializer<T> implements Serializer<List<T>> {
         } else if (!size.contains(value.size())) {
             throw new SerializationException(node, "Expected the size of the list to be in range " + size + ".");
         }
-        node.attach().setValue(ImmutableList.of());
+        if (node.getType() == Node.Type.ARRAY) {
+            for (int i = node.getList().size(); i > value.size(); i--) {
+                node.resolve(i - 1).detach();
+            }
+        } else {
+            node.attach().setValue(Lists.newArrayList());
+        }
         for (int i = 0; i < value.size(); i++) {
             node.resolve(i).set(value.get(i), serializer);
         }

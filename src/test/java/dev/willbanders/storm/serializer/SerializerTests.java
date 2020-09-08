@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 class SerializerTests {
@@ -507,6 +508,36 @@ class SerializerTests {
                 Arguments.of("Character Elements", CharacterSerializer.INSTANCE,
                         ImmutableMap.of("a",'a', "b", 'b', "c", 'c')),
                 Arguments.of("Invalid Type", StringSerializer.INSTANCE, null)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testCommentRetention")
+    <T> void testCommentRetention(String test, Serializer<T> serializer, T start, T value) {
+        Node node = Node.root();
+        node.attach().setValue(start);
+        node.getChildren().forEach(n -> n.setComment("comment: " + n.getKey()));
+        node.set(value, serializer);
+        Assertions.assertAll(Stream.concat(
+                Stream.of(() -> Assertions.assertEquals(value, node.getValue())),
+                node.getChildren().stream().map(n -> () -> Assertions.assertEquals("comment: " + n.getKey(), n.getComment())))
+        );
+    }
+
+    private static Stream<Arguments> testCommentRetention() {
+        return Stream.of(
+                Arguments.of("List", ListSerializer.INSTANCE.of(StringSerializer.INSTANCE),
+                        ImmutableList.of("first", "second", "third"),
+                        ImmutableList.of("first", "third")),
+                Arguments.of("Tuple", TupleSerializer.INSTANCE.of(ImmutableList.of(StringSerializer.INSTANCE, StringSerializer.INSTANCE)),
+                        ImmutableList.of("first", "second", "third"),
+                        ImmutableList.of("first", "third")),
+                Arguments.of("Map", MapSerializer.INSTANCE.of(StringSerializer.INSTANCE),
+                        ImmutableMap.of("x", "first", "y", "second", "z", "third"),
+                        ImmutableMap.of("x", "first", "z", "third")),
+                Arguments.of("Object", ObjectSerializer.INSTANCE.of(ImmutableMap.of("x", StringSerializer.INSTANCE, "z", StringSerializer.INSTANCE)),
+                        ImmutableMap.of("x", "first", "y", "second", "z", "third"),
+                        ImmutableMap.of("x", "first", "z", "third"))
         );
     }
 

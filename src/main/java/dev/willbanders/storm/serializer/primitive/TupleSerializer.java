@@ -43,7 +43,13 @@ public final class TupleSerializer<T> implements Serializer<List<T>> {
         } else if (value.size() != serializers.size()) {
             throw new SerializationException(node, "Expected a list with size " + serializers.size() + ".");
         }
-        node.attach().setValue(Lists.newArrayList());
+        if (node.getType() == Node.Type.ARRAY) {
+            for (int i = node.getList().size(); i > value.size(); i--) {
+                node.resolve(i - 1).detach();
+            }
+        } else {
+            node.attach().setValue(Lists.newArrayList());
+        }
         for (int i = 0; i < value.size(); i++) {
             try {
                 node.resolve(i).set(value.get(i), (Serializer<T>) serializers.get(i));

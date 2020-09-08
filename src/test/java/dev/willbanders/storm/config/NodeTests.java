@@ -57,6 +57,13 @@ class NodeTests {
         );
     }
 
+    @Test
+    void testComment() {
+        Assertions.assertEquals("", root.getComment());
+        root.setComment("comment");
+        Assertions.assertEquals("comment", root.getComment());
+    }
+
     @Nested
     class SetValueTests {
 
