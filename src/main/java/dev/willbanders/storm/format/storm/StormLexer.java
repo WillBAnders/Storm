@@ -18,7 +18,13 @@ public final class StormLexer extends Lexer<StormTokenType> {
         chars.emit(StormTokenType.OPERATOR);
         while (chars.has(0)) {
             Token<StormTokenType> token = chars.emit(lexToken());
-            if (token.getType() == StormTokenType.NEWLINE) {
+            if (token.getType() == StormTokenType.COMMENT) {
+                if (peek("[\n\r]")) {
+                    lexNewline();
+                    chars.emit(StormTokenType.NEWLINE);
+                    chars.newline();
+                }
+            } else if (token.getType() == StormTokenType.NEWLINE) {
                 chars.newline();
             } else if (token.getType() == StormTokenType.OPERATOR) {
                 switch (token.getLiteral()) {
@@ -33,7 +39,9 @@ public final class StormLexer extends Lexer<StormTokenType> {
     }
 
     private StormTokenType lexToken() throws ParseException {
-        if (peek("[\n\r]")) {
+        if (peek('/', '/')) {
+            return lexComment();
+        } else if (peek("[\n\r]")) {
             return lexNewline();
         } else if (peek("[a-z]")) {
             return lexIdentifier();
@@ -46,6 +54,12 @@ public final class StormLexer extends Lexer<StormTokenType> {
         } else {
             return lexOperator();
         }
+    }
+
+    private StormTokenType lexComment() {
+        Preconditions.checkState(match('/', '/'), "Broken lexer invariant.");
+        while (match("[^\n\r]")) {}
+        return StormTokenType.COMMENT;
     }
 
     private StormTokenType lexNewline() {

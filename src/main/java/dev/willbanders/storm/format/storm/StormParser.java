@@ -11,7 +11,6 @@ import dev.willbanders.storm.format.Parser;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,18 +35,45 @@ public final class StormParser extends Parser<StormTokenType> {
     }
 
     private void parseRoot(Node node) throws ParseException {
-        while (match(StormTokenType.NEWLINE)) {}
-        if (!tokens.has(0)) {
-            node.attach().setValue(new LinkedHashMap<>());
-        } else if (!peek(StormTokenType.IDENTIFIER) || peek(Arrays.asList("null", "true", "false"))) {
-            context.addFirst(tokens.get(0).getRange());
-            parseValue(node);
-            while (match(StormTokenType.NEWLINE)) {}
-            require(!tokens.has(0), () -> Diagnostic.builder()
-                    .summary("Expected end of input.")
-                    .details("The config was parsed as a single value, but more input was provided. Multiple values must be included in an array or object, such as [1, 2, 3] or {x = 1, y = 2, z = 3}."));
-            context.removeLast();
+        String comment = "";
+        if (peek(StormTokenType.COMMENT)) {
+            context.push(tokens.get(0).getRange());
+            comment = parseComment();
+            if (peek(StormTokenType.NEWLINE)) {
+                while (match(StormTokenType.NEWLINE)) {}
+                node.setComment(comment);
+                if (peek(StormTokenType.COMMENT)) {
+                    context.push(tokens.get(0).getRange());
+                }
+                comment = parseComment();
+            }
         } else {
+            while (match(StormTokenType.NEWLINE)) {}
+        }
+        if (!peek(StormTokenType.IDENTIFIER) || peek(Arrays.asList("null", "true", "false"))) {
+            if (!comment.isEmpty()) {
+                if (!node.getComment().isEmpty()) {
+                    throw error(Diagnostic.builder()
+                            .summary("Invalid value.")
+                            .details("Expected to parse a value, but found an invalid token. This could be caused by a missing bracket, brace, or quotes.")
+                            .range(context.getFirst()));
+                }
+                node.setComment(comment);
+            }
+            context.clear();
+            if (tokens.has(0)) {
+                context.addFirst(tokens.get(0).getRange());
+                parseValue(node);
+                while (match(StormTokenType.NEWLINE)) {}
+                require(!tokens.has(0), () -> Diagnostic.builder()
+                        .summary("Expected end of input.")
+                        .details("The config was parsed as a single value, but more input was provided. Multiple values must be included in an array or object, such as [1, 2, 3] or {x = 1, y = 2, z = 3}."));
+                context.removeLast();
+            } else {
+                node.attach().setValue(Maps.newLinkedHashMap());
+            }
+        } else {
+            context.clear();
             node.attach().setValue(Maps.newLinkedHashMap());
             Map<String, Diagnostic.Range> defined = Maps.newHashMap();
             while (tokens.has(0)) {
@@ -60,7 +86,19 @@ public final class StormParser extends Parser<StormTokenType> {
                 }
                 context.removeLast();
             }
+            node.getChildren().iterator().next().setComment(comment);
         }
+    }
+
+    private String parseComment() throws ParseException {
+        StringBuilder builder = new StringBuilder();
+        while (match(StormTokenType.COMMENT)) {
+            builder.append(tokens.get(-1).getLiteral().substring(2));
+            if (peek(StormTokenType.COMMENT)) {
+                builder.append(System.lineSeparator());
+            }
+        }
+        return builder.toString();
     }
 
     private void parseValue(Node node) throws ParseException {
@@ -96,11 +134,14 @@ public final class StormParser extends Parser<StormTokenType> {
         while (match(StormTokenType.NEWLINE)) {}
         node.attach().setValue(Lists.newArrayList());
         while (!match("]")) {
+            String comment = parseComment();
             require(tokens.has(0), () -> Diagnostic.builder()
                     .summary("Unexpected end of input.")
                     .details("Expected to parse an array value, but reached the end of available input. This could be caused by a missing closing bracket ']'."));
             context.addLast(tokens.get(0).getRange());
-            parseValue(node.resolve(node.getList().size()));
+            Node child = node.resolve(node.getList().size());
+            child.setComment(comment);
+            parseValue(child);
             if (!peek("]")) {
                 require(match(Arrays.asList(",", StormTokenType.NEWLINE)), () -> Diagnostic.builder()
                         .summary("Expected a comma/newline separator or the closing bracket after array value.")
@@ -129,6 +170,7 @@ public final class StormParser extends Parser<StormTokenType> {
     }
 
     private void parseProperty(Node node, Map<String, Diagnostic.Range> defined) throws ParseException {
+        String comment = parseComment();
         require(match(StormTokenType.IDENTIFIER), () -> Diagnostic.builder()
                 .summary("Expected an identifier for property key.")
                 .details("A property has the form 'key = value', where key is an identifier (a-z followed by a-z, _, or -). Strings and other symbols are not allowed."));
@@ -159,7 +201,9 @@ public final class StormParser extends Parser<StormTokenType> {
                     .details("A property has the form 'key = value', and thus requires a value following the key and equals sign.")
                     .range(Diagnostic.range(start.getIndex(), start.getLine(), start.getColumn(), end.getIndex() + end.getLength() - start.getIndex())));
         }
-        parseValue(node.resolve(key));
+        Node child = node.resolve(key);
+        child.setComment(comment);
+        parseValue(child);
     }
 
     private String unescape(String string) {

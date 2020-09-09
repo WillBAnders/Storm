@@ -2,7 +2,6 @@ package dev.willbanders.storm.format;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.sun.org.apache.xpath.internal.Arg;
 import dev.willbanders.storm.config.Node;
 import dev.willbanders.storm.format.storm.StormGenerator;
 import dev.willbanders.storm.format.storm.StormParser;
@@ -22,6 +21,45 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 public class StormFormatTests {
+
+    @ParameterizedTest
+    @MethodSource
+    void testComment(String test, String input, Map<Object, String> comments) {
+        Node deserialized = StormParser.parse(input);
+        StringWriter writer = new StringWriter();
+        StormGenerator.generate(deserialized, new PrintWriter(writer));
+        Node reserialized = StormParser.parse(writer.toString());
+        Assertions.assertAll(comments.entrySet().stream().map(e -> () ->
+                Assertions.assertAll(Stream.of(deserialized, reserialized).map(n -> () ->
+                        Assertions.assertEquals(e.getValue(), (e.getKey() instanceof String ? n.get((String) e.getKey()) : n.resolve(e.getKey())).getComment())
+                ))
+        ));
+    }
+
+    private static Stream<Arguments> testComment() {
+        return Stream.of(
+                Arguments.of("Empty Config", "//header", ImmutableMap.of("", "header")),
+                Arguments.of("Value", "//value\nnull", ImmutableMap.of("", "value")),
+                Arguments.of("Property", "//property\nx = 1\ny = 2", ImmutableMap.of("", "", "x", "property", "y", "")),
+                Arguments.of("Header", "//header\n\nx = 1\ny = 2", ImmutableMap.of("", "header", "x", "", "y", "")),
+                Arguments.of("Header & Property", "//header\n\n//property\nx = 1\ny = 2", ImmutableMap.of("", "header", "x", "property", "y", "")),
+                Arguments.of("Array", "[//one\n1,//two\n2,//three\n//three\n6]", ImmutableMap.of(
+                        "", "",
+                        0, "one",
+                        1, "two",
+                        2, "three" + System.lineSeparator() + "three"
+                )),
+                Arguments.of("Object", "//object\nobject={//scalar\nscalar=null, //array\narray=[1]}", ImmutableMap.of(
+                        "", "",
+                        "object", "object",
+                        "object.scalar", "scalar",
+                        "object.array", "array"
+                )),
+                Arguments.of("Multiline", "//line1\n//line2\n//line3\nnull", ImmutableMap.of(
+                        "", "line1" + System.lineSeparator() + "line2" + System.lineSeparator() + "line3")
+                )
+        );
+    }
 
     @Test
     void testNull() {
@@ -206,6 +244,7 @@ public class StormFormatTests {
 
     private static Stream<Arguments> testDiagnosticRange() {
         return Stream.of(
+                Arguments.of("Invalid Comment", "//header\n\n//value\nnull", Diagnostic.range(10, 3, 1, 7)),
                 Arguments.of("Empty Character", "\'\'", Diagnostic.range(0, 1, 1, 2)),
                 Arguments.of("Too Many Characters", "\'abc\'", Diagnostic.range(0, 1, 1, 5)),
                 Arguments.of("Unterminated Character", "\'c", Diagnostic.range(0, 1, 1, 2)),

@@ -56,6 +56,8 @@ public abstract class Generator {
         }
     }
 
+    protected abstract void generateComment(Node node);
+
     protected void generateNull(Node node) {
         write(node.getValue());
     }
