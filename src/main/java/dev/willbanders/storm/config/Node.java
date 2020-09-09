@@ -372,13 +372,14 @@ public final class Node {
 
     /**
      * Returns a node located at the given path relative to this node. The path
-     * is split on {@code .}, as in {@code first.second.third}. Array indices
-     * cannot be represented with this method.
+     * is split on {@code .}, as in {@code first.second.third}, and an empty
+     * path returns this node. Array indices are currently not supported, and
+     * {@link #resolve(Object...)} must be used instead.
      *
      * @see #resolve(Object...)
      */
     public Node get(String path) {
-        return resolve((Object[]) path.split("\\."));
+        return path.isEmpty() ? this : resolve((Object[]) path.split("\\."));
     }
 
     /**

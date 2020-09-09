@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 class NodeTests {
@@ -236,6 +237,27 @@ class NodeTests {
                 Arguments.of("Nested Objects", ImmutableList.of("first", "second", "third")),
                 Arguments.of("Mixed", ImmutableList.of(0, "child")),
                 Arguments.of("Repeated Keys", ImmutableList.of("child", "child"))
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource
+    void testGet(String test, String path) {
+        Node resolved = root.get(path).attach();
+        Assertions.assertAll(
+                () -> Assertions.assertEquals(path, resolved.getPath().stream()
+                        .map(Object::toString)
+                        .collect(Collectors.joining("."))),
+                () -> Assertions.assertSame(resolved, root.get(path))
+        );
+    }
+
+    private static Stream<Object> testGet() {
+        return Stream.of(
+                Arguments.of("Empty", ""),
+                Arguments.of("Object", "child"),
+                Arguments.of("Nested Objects", "first.second.third"),
+                Arguments.of("Repeated Keys", "child.child")
         );
     }
 
