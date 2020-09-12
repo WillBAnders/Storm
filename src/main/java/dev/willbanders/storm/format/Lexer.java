@@ -4,8 +4,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 
-import java.util.ArrayDeque;
-import java.util.Deque;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -13,14 +11,12 @@ public abstract class Lexer<T extends Token.Type> {
 
     protected final String input;
     protected final CharStream chars = new CharStream();
-    protected final List<Token<T>> tokens = Lists.newArrayList();
-    protected final Deque<Diagnostic.Range> context = new ArrayDeque<>();
 
     protected Lexer(String input) {
         this.input = input;
     }
 
-    public abstract void lex() throws ParseException;
+    public abstract Token<T> lexToken() throws ParseException;
 
     protected boolean peek(Object... objects) {
         for (int i = 0; i < objects.length; i++) {
@@ -62,7 +58,7 @@ public abstract class Lexer<T extends Token.Type> {
     protected ParseException error(Diagnostic.Builder builder) {
         return new ParseException(builder
                 .input(input)
-                .context(ImmutableList.copyOf(context))
+                .context(ImmutableList.of())
                 .build());
     }
 
@@ -72,39 +68,37 @@ public abstract class Lexer<T extends Token.Type> {
         private int line = 1;
         private int column = 1;
         private int length = 0;
-        private final StringBuilder builder = new StringBuilder();
 
         private CharStream() {}
 
         public Diagnostic.Range getRange() {
-            return Diagnostic.range(index - length, line, column, length);
+            return Diagnostic.range(index, line, column, length);
         }
 
         public boolean has(int offset) {
-            return index + offset < input.length();
+            return index + length + offset < input.length();
         }
 
         public char get(int offset) {
             Preconditions.checkState(has(offset), "Broken lexer invariant.");
-            return input.charAt(index + offset);
+            return input.charAt(index + length + offset);
         }
 
         public void advance() {
             Preconditions.checkState(has(0), "Broken lexer invariant.");
-            builder.append(input.charAt(index++));
             length++;
         }
 
         public Token<T> emit(T type) {
-            String literal = builder.toString();
             Diagnostic.Range range = getRange();
-            builder.setLength(0);
+            index += length;
             column += length;
             length = 0;
-            return new Token<>(type, literal, range);
+            return new Token<>(type, input.substring(range.getIndex(), index), range);
         }
 
         public void newline() {
+            Preconditions.checkState(length == 0);
             line++;
             column = 1;
         }

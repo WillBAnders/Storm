@@ -2,6 +2,7 @@ package dev.willbanders.storm.format;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 import dev.willbanders.storm.config.Node;
 
 import java.util.ArrayDeque;
@@ -17,7 +18,6 @@ public abstract class Parser<T extends Token.Type> {
 
     protected Parser(Lexer<T> lexer) throws ParseException {
         this.lexer = lexer;
-        lexer.lex();
     }
 
     protected abstract Node parse() throws ParseException;
@@ -41,7 +41,7 @@ public abstract class Parser<T extends Token.Type> {
         return peek;
     }
 
-    private boolean test(Object object, Token token) {
+    private boolean test(Object object, Token<T> token) {
         if (object instanceof Token.Type) {
             return object == token.getType();
         } else if (object instanceof String) {
@@ -68,17 +68,31 @@ public abstract class Parser<T extends Token.Type> {
 
     protected final class TokenStream {
 
+        private final List<Token<T>> tokens = Lists.newArrayList();
         private int index = 0;
 
         private TokenStream() {}
 
-        public boolean has(int offset) {
-            return index + offset < lexer.tokens.size();
+        public boolean has(int offset) throws ParseException {
+            try {
+                while (index + offset >= tokens.size()) {
+                    tokens.add(lexer.lexToken());
+                }
+                return tokens.get(index + offset) != null;
+            } catch (ParseException e) {
+                throw (ParseException) new ParseException(Diagnostic.builder()
+                        .input(e.getDiagnostic().getInput())
+                        .summary(e.getDiagnostic().getSummary())
+                        .details(e.getDiagnostic().getDetails())
+                        .range(e.getDiagnostic().getRange())
+                        .context(ImmutableList.copyOf(context))
+                        .build()).initCause(e);
+            }
         }
 
-        public Token<T> get(int offset) {
+        public Token<T> get(int offset) throws ParseException {
             Preconditions.checkState(has(offset), "Broken parser invariant.");
-            return lexer.tokens.get(index + offset);
+            return tokens.get(index + offset);
         }
 
         public void advance() {

@@ -54,9 +54,9 @@ public final class StormParser extends Parser<StormTokenType> {
             if (!comment.isEmpty()) {
                 if (!node.getComment().isEmpty()) {
                     throw error(Diagnostic.builder()
-                            .summary("Invalid value.")
-                            .details("Expected to parse a value, but found an invalid token. This could be caused by a missing bracket, brace, or quotes.")
-                            .range(context.getFirst()));
+                            .summary("Invalid comment.")
+                            .details("A comment on this node is not allowed as a header comment has already been defined.")
+                            .range(context.peek()));
                 }
                 node.setComment(comment);
             }

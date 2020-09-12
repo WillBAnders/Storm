@@ -13,33 +13,12 @@ public final class StormLexer extends Lexer<StormTokenType> {
     }
 
     @Override
-    public void lex() throws ParseException {
+    public Token<StormTokenType> lexToken() throws ParseException {
         while (match("[ \t]")) {}
         chars.emit(StormTokenType.OPERATOR);
-        while (chars.has(0)) {
-            Token<StormTokenType> token = chars.emit(lexToken());
-            if (token.getType() == StormTokenType.COMMENT) {
-                if (peek("[\n\r]")) {
-                    lexNewline();
-                    chars.emit(StormTokenType.NEWLINE);
-                    chars.newline();
-                }
-            } else if (token.getType() == StormTokenType.NEWLINE) {
-                chars.newline();
-            } else if (token.getType() == StormTokenType.OPERATOR) {
-                switch (token.getLiteral()) {
-                    case "{": case "[": context.addLast(token.getRange()); break;
-                    case "}": case "]": context.removeLast(); break;
-                }
-            }
-            tokens.add(token);
-            while (match("[ \t]")) {}
-            chars.emit(StormTokenType.OPERATOR);
-        }
-    }
-
-    private StormTokenType lexToken() throws ParseException {
-        if (peek('/', '/')) {
+        if (!chars.has(0)) {
+            return null;
+        } else if (peek('/', '/')) {
             return lexComment();
         } else if (peek("[\n\r]")) {
             return lexNewline();
@@ -56,13 +35,17 @@ public final class StormLexer extends Lexer<StormTokenType> {
         }
     }
 
-    private StormTokenType lexComment() {
+    private Token<StormTokenType> lexComment() {
         Preconditions.checkState(match('/', '/'), "Broken lexer invariant.");
         while (match("[^\n\r]")) {}
-        return StormTokenType.COMMENT;
+        Token<StormTokenType> token = chars.emit(StormTokenType.COMMENT);
+        if (chars.has(0)) {
+            lexNewline();
+        }
+        return token;
     }
 
-    private StormTokenType lexNewline() {
+    private Token<StormTokenType> lexNewline() {
         if (match('\n')) {
             match('\r');
         } else if (match('\r')) {
@@ -70,27 +53,29 @@ public final class StormLexer extends Lexer<StormTokenType> {
         } else {
             throw new IllegalStateException("Broken lexer invariant.");
         }
-        return StormTokenType.NEWLINE;
+        Token<StormTokenType> token = chars.emit(StormTokenType.NEWLINE);
+        chars.newline();
+        return token;
     }
 
-    private StormTokenType lexIdentifier() {
+    private Token<StormTokenType> lexIdentifier() {
         Preconditions.checkState(match("[a-z]"), "Broken lexer invariant.");
         while (match("[a-z_-]")) {}
-        return StormTokenType.IDENTIFIER;
+        return chars.emit(StormTokenType.IDENTIFIER);
     }
 
-    private StormTokenType lexNumber() {
+    private Token<StormTokenType> lexNumber() {
         match("[+-]");
         Preconditions.checkState(match("[0-9]"), "Broken lexer invariant.");
         while (match("[0-9]")) {}
         if (match('.', "[0-9]")) {
             while (match("[0-9]")) {}
-            return StormTokenType.DECIMAL;
+            return chars.emit(StormTokenType.DECIMAL);
         }
-        return StormTokenType.INTEGER;
+        return chars.emit(StormTokenType.INTEGER);
     }
 
-    private StormTokenType lexCharacter() throws ParseException {
+    private Token<StormTokenType> lexCharacter() throws ParseException {
         Preconditions.checkState(match('\''), "Broken lexer invariant.");
         require(chars.has(0) && !match('\''), () -> Diagnostic.builder()
                 .summary("Empty character literal.")
@@ -112,10 +97,10 @@ public final class StormLexer extends Lexer<StormTokenType> {
                         .range(chars.getRange()));
             }
         }
-        return StormTokenType.CHARACTER;
+        return chars.emit(StormTokenType.CHARACTER);
     }
 
-    private StormTokenType lexString() throws ParseException {
+    private Token<StormTokenType> lexString() throws ParseException {
         Preconditions.checkState(match('\"'), "Broken lexer invariant.");
         while (peek("[^\"\n\r]")) {
             lexEscape();
@@ -124,7 +109,7 @@ public final class StormLexer extends Lexer<StormTokenType> {
                 .summary("Unterminated string literal.")
                 .details("A string literal must be surrounded by double quotes, such as \"abc\". If a literal double-quote is desired, use an escape as in \"abc\\\"123\".")
                 .range(chars.getRange()));
-        return StormTokenType.STRING;
+        return chars.emit(StormTokenType.STRING);
     }
 
     private void lexEscape() throws ParseException {
@@ -152,9 +137,9 @@ public final class StormLexer extends Lexer<StormTokenType> {
         }
     }
 
-    private StormTokenType lexOperator() {
+    private Token<StormTokenType> lexOperator() {
         chars.advance();
-        return StormTokenType.OPERATOR;
+        return chars.emit(StormTokenType.OPERATOR);
     }
 
 }
