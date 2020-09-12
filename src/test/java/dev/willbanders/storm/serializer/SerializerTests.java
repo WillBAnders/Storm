@@ -4,20 +4,14 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
+import dev.willbanders.storm.Storm;
 import dev.willbanders.storm.config.Node;
-import dev.willbanders.storm.serializer.primitive.AnySerializer;
-import dev.willbanders.storm.serializer.primitive.BooleanSerializer;
-import dev.willbanders.storm.serializer.primitive.CharacterSerializer;
-import dev.willbanders.storm.serializer.primitive.DecimalSerializer;
 import dev.willbanders.storm.serializer.primitive.EnumSerializer;
-import dev.willbanders.storm.serializer.primitive.IntegerSerializer;
 import dev.willbanders.storm.serializer.primitive.ListSerializer;
 import dev.willbanders.storm.serializer.primitive.MapSerializer;
 import dev.willbanders.storm.serializer.primitive.NullableSerializer;
-import dev.willbanders.storm.serializer.primitive.ObjectSerializer;
 import dev.willbanders.storm.serializer.primitive.OptionalSerializer;
 import dev.willbanders.storm.serializer.primitive.SetSerializer;
-import dev.willbanders.storm.serializer.primitive.StringSerializer;
 import dev.willbanders.storm.serializer.primitive.TupleSerializer;
 import dev.willbanders.storm.serializer.primitive.UnionSerializer;
 import org.junit.jupiter.api.Assertions;
@@ -43,12 +37,12 @@ class SerializerTests {
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testAny")
         void testAny(String test, Object value) {
-            testSerializer(AnySerializer.INSTANCE, value, value, value != null);
+            testSerializer(Storm.ANY, value, value, value != null);
         }
 
         @Test
         void testAnyUndefined() {
-            Assertions.assertThrows(SerializationException.class, () -> Node.root().get(AnySerializer.INSTANCE));
+            Assertions.assertThrows(SerializationException.class, () -> Node.root().get(Storm.ANY));
         }
 
     }
@@ -66,7 +60,7 @@ class SerializerTests {
     @ParameterizedTest
     @MethodSource
     void testBoolean(String test, Boolean value) {
-        testSerializer(BooleanSerializer.INSTANCE, value, value, value != null);
+        testSerializer(Storm.BOOLEAN, value, value, value != null);
     }
 
     private static Stream<Arguments> testBoolean() {
@@ -83,13 +77,13 @@ class SerializerTests {
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testInteger")
         void testInteger(String test, BigInteger value) {
-            testSerializer(IntegerSerializer.BIG_INTEGER, value, value, value != null);
+            testSerializer(Storm.BIG_INTEGER, value, value, value != null);
         }
 
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testIntegerRange")
         void testIntegerRange(String test, Range<BigInteger> range) {
-            Serializer<BigInteger> serializer = IntegerSerializer.BIG_INTEGER.range(range);
+            Serializer<BigInteger> serializer = Storm.BIG_INTEGER.range(range);
             Assertions.assertAll(
                     () -> testSerializer(serializer, BigInteger.ZERO, BigInteger.ZERO, range.contains(BigInteger.ZERO)),
                     () -> testSerializer(serializer, BigInteger.ONE, BigInteger.ONE, range.contains(BigInteger.ONE)),
@@ -130,10 +124,10 @@ class SerializerTests {
 
     private static Stream<Arguments> testIntegerTypes() {
         return Stream.of(
-                Arguments.of("Byte", Byte.MAX_VALUE, IntegerSerializer.BYTE),
-                Arguments.of("Short", Short.MAX_VALUE, IntegerSerializer.SHORT),
-                Arguments.of("Integer", Integer.MAX_VALUE, IntegerSerializer.INTEGER),
-                Arguments.of("Long", Long.MAX_VALUE, IntegerSerializer.LONG)
+                Arguments.of("Byte", Byte.MAX_VALUE, Storm.BYTE),
+                Arguments.of("Short", Short.MAX_VALUE, Storm.SHORT),
+                Arguments.of("Integer", Integer.MAX_VALUE, Storm.INTEGER),
+                Arguments.of("Long", Long.MAX_VALUE, Storm.LONG)
         );
     }
 
@@ -143,13 +137,13 @@ class SerializerTests {
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testDecimal")
         void testDecimal(String test, BigDecimal value) {
-            testSerializer(DecimalSerializer.BIG_DECIMAL, value, value, value != null);
+            testSerializer(Storm.BIG_DECIMAL, value, value, value != null);
         }
 
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testDecimalRange")
         void testDecimalRange(String test, Range<BigDecimal> range) {
-            Serializer<BigDecimal> serializer = DecimalSerializer.BIG_DECIMAL.range(range);
+            Serializer<BigDecimal> serializer = Storm.BIG_DECIMAL.range(range);
             Assertions.assertAll(
                     () -> testSerializer(serializer, BigDecimal.ZERO, BigDecimal.ZERO, range.contains(BigDecimal.ZERO)),
                     () -> testSerializer(serializer, BigDecimal.ONE, BigDecimal.ONE, range.contains(BigDecimal.ONE)),
@@ -192,8 +186,8 @@ class SerializerTests {
 
     private static Stream<Arguments> testDecimalTypes() {
         return Stream.of(
-                Arguments.of("Float", Float.MAX_VALUE, DecimalSerializer.FLOAT),
-                Arguments.of("Double", Double.MAX_VALUE, DecimalSerializer.DOUBLE)
+                Arguments.of("Float", Float.MAX_VALUE, Storm.FLOAT),
+                Arguments.of("Double", Double.MAX_VALUE, Storm.DOUBLE)
         );
     }
 
@@ -203,13 +197,13 @@ class SerializerTests {
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testCharacter")
         void testCharacter(String test, Character value) {
-            testSerializer(CharacterSerializer.INSTANCE, value, value, value != null);
+            testSerializer(Storm.CHARACTER, value, value, value != null);
         }
 
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testCharacterRegex")
         void testCharacterRegex(String test, Character value, String regex) {
-            testSerializer(CharacterSerializer.INSTANCE.matches(regex), value, value, value.toString().matches(regex));
+            testSerializer(Storm.CHARACTER.matches(regex), value, value, value.toString().matches(regex));
         }
 
     }
@@ -238,13 +232,13 @@ class SerializerTests {
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testString")
         void testString(String test, String value) {
-            testSerializer(StringSerializer.INSTANCE, value, value, value != null);
+            testSerializer(Storm.STRING, value, value, value != null);
         }
 
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testStringRegex")
         void testStringRegex(String test, String value, String regex) {
-            testSerializer(StringSerializer.INSTANCE.matches(regex), value, value, value.matches(regex));
+            testSerializer(Storm.STRING.matches(regex), value, value, value.matches(regex));
         }
 
     }
@@ -274,19 +268,19 @@ class SerializerTests {
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testList")
         void testList(String test, Serializer<?> serializer, Object value) {
-            testSerializer(ListSerializer.INSTANCE.of(serializer), value, value, value != null);
+            testSerializer(Storm.LIST.of(serializer), value, value, value != null);
         }
 
         @Test
         void testListInvalidElement() {
             List<Object> list = ImmutableList.of("first", false, "third");
-            testDeserializer(ListSerializer.INSTANCE.of(StringSerializer.INSTANCE), list, null, false);
+            testDeserializer(Storm.LIST.of(Storm.STRING), list, null, false);
         }
 
         @Test
         void testListSize() {
             List<Object> list = ImmutableList.of("first", "second", "third");
-            ListSerializer<String> base = ListSerializer.INSTANCE.of(StringSerializer.INSTANCE);
+            ListSerializer<String> base = Storm.LIST.of(Storm.STRING);
             Assertions.assertAll(
                     () -> testSerializer(base.size(Range.atLeast(0)), list, list, true),
                     () -> testSerializer(base.size(Range.atLeast(5)), list, list, false),
@@ -298,10 +292,10 @@ class SerializerTests {
 
     private static Stream<Arguments> testList() {
         return Stream.of(
-                Arguments.of("Empty", BooleanSerializer.INSTANCE, ImmutableList.of()),
-                Arguments.of("Integer Element", IntegerSerializer.BIG_INTEGER, ImmutableList.of(BigInteger.ONE)),
-                Arguments.of("Character Elements", CharacterSerializer.INSTANCE, ImmutableList.of('a', 'b', 'c')),
-                Arguments.of("Invalid Type", StringSerializer.INSTANCE, null)
+                Arguments.of("Empty", Storm.BOOLEAN, ImmutableList.of()),
+                Arguments.of("Integer Element", Storm.BIG_INTEGER, ImmutableList.of(BigInteger.ONE)),
+                Arguments.of("Character Elements", Storm.CHARACTER, ImmutableList.of('a', 'b', 'c')),
+                Arguments.of("Invalid Type", Storm.STRING, null)
         );
     }
 
@@ -312,26 +306,26 @@ class SerializerTests {
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testSet")
         void testSet(String test, Serializer<?> serializer, Set value) {
             Object expected = value != null ? ImmutableList.copyOf(value) : null;
-            testSerializer(SetSerializer.INSTANCE.of(serializer), value, expected, value != null);
+            testSerializer(Storm.SET.of(serializer), value, expected, value != null);
         }
 
         @Test
         void testSetDuplicateElement() {
             List<Object> list = ImmutableList.of("element", "element");
-            testDeserializer(SetSerializer.INSTANCE.of(StringSerializer.INSTANCE), list, null, false);
+            testDeserializer(Storm.SET.of(Storm.STRING), list, null, false);
         }
 
         @Test
         void testSetInvalidElement() {
             List<Object> list = ImmutableList.of("first", false, "third");
-            testDeserializer(SetSerializer.INSTANCE.of(StringSerializer.INSTANCE), list, null, false);
+            testDeserializer(Storm.SET.of(Storm.STRING), list, null, false);
         }
 
         @Test
         void testSetSize() {
             Set<Object> set = ImmutableSet.of("first", "second", "third");
             List<Object> list = ImmutableList.copyOf(set);
-            SetSerializer<String> base = SetSerializer.INSTANCE.of(StringSerializer.INSTANCE);
+            SetSerializer<String> base = Storm.SET.of(Storm.STRING);
             Assertions.assertAll(
                     () -> testSerializer(base.size(Range.atLeast(1)), set, list, true),
                     () -> testSerializer(base.size(Range.atLeast(5)), set, list, false),
@@ -343,10 +337,10 @@ class SerializerTests {
 
     private static Stream<Arguments> testSet() {
         return Stream.of(
-                Arguments.of("Empty", BooleanSerializer.INSTANCE, ImmutableSet.of()),
-                Arguments.of("Integer Element", IntegerSerializer.BIG_INTEGER, ImmutableSet.of(BigInteger.ONE)),
-                Arguments.of("Character Elements", CharacterSerializer.INSTANCE, ImmutableSet.of('a', 'b', 'c')),
-                Arguments.of("Invalid Type", StringSerializer.INSTANCE, null)
+                Arguments.of("Empty", Storm.BOOLEAN, ImmutableSet.of()),
+                Arguments.of("Integer Element", Storm.BIG_INTEGER, ImmutableSet.of(BigInteger.ONE)),
+                Arguments.of("Character Elements", Storm.CHARACTER, ImmutableSet.of('a', 'b', 'c')),
+                Arguments.of("Invalid Type", Storm.STRING, null)
         );
     }
 
@@ -360,12 +354,12 @@ class SerializerTests {
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testEnum")
         void testEnum(String test, TestEnum value) {
-            testSerializer(EnumSerializer.INSTANCE.of(TestEnum.class), value, value != null ? value.name() : null, value != null);
+            testSerializer(Storm.ENUM.of(TestEnum.class), value, value != null ? value.name() : null, value != null);
         }
 
         @Test
         void testEnumCaseInsensitive() {
-            EnumSerializer<TestEnum> serializer = EnumSerializer.INSTANCE.of(TestEnum.class);
+            EnumSerializer<TestEnum> serializer = Storm.ENUM.of(TestEnum.class);
             Assertions.assertAll(
                     () -> testDeserializer(serializer, "first", TestEnum.FIRST, true),
                     () -> testDeserializer(serializer, "Second", TestEnum.SECOND, true),
@@ -388,7 +382,7 @@ class SerializerTests {
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testTuple")
         void testTuple(String test, List<Serializer<?>> serializers, List<?> values, boolean success) {
-            testSerializer(TupleSerializer.INSTANCE.of(serializers), values, values, success);
+            testSerializer(Storm.TUPLE.of(serializers), values, values, success);
         }
 
     }
@@ -396,17 +390,17 @@ class SerializerTests {
     private static Stream<Arguments> testTuple() {
         return Stream.of(
                 Arguments.of("Empty", ImmutableList.of(), ImmutableList.of(), true),
-                Arguments.of("Boolean", ImmutableList.of(BooleanSerializer.INSTANCE), ImmutableList.of(true), true),
+                Arguments.of("Boolean", ImmutableList.of(Storm.BOOLEAN), ImmutableList.of(true), true),
                 Arguments.of("Boolean, Character, String",
-                        ImmutableList.of(BooleanSerializer.INSTANCE, CharacterSerializer.INSTANCE, StringSerializer.INSTANCE),
+                        ImmutableList.of(Storm.BOOLEAN, Storm.CHARACTER, Storm.STRING),
                         ImmutableList.of(true, 'c', "string"),
                         true),
                 Arguments.of("Invalid Length",
-                        ImmutableList.of(BooleanSerializer.INSTANCE),
+                        ImmutableList.of(Storm.BOOLEAN),
                         ImmutableList.of(true, false),
                         false),
                 Arguments.of("Invalid Type",
-                        ImmutableList.of(BooleanSerializer.INSTANCE, CharacterSerializer.INSTANCE),
+                        ImmutableList.of(Storm.BOOLEAN, Storm.CHARACTER),
                         ImmutableList.of(true, "string"),
                         false)
         );
@@ -418,19 +412,19 @@ class SerializerTests {
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testMap")
         void testMap(String test, Serializer<?> serializer, Object value) {
-            testSerializer(MapSerializer.INSTANCE.of(serializer), value, value, value != null);
+            testSerializer(Storm.MAP.of(serializer), value, value, value != null);
         }
 
         @Test
         void testMapInvalidElement() {
             Map<String, Object> map = ImmutableMap.of("x", "first", "y", false, "z", "third");
-            testDeserializer(MapSerializer.INSTANCE.of(StringSerializer.INSTANCE), map, null, false);
+            testDeserializer(Storm.MAP.of(Storm.STRING), map, null, false);
         }
 
         @Test
         void testMapSize() {
             Map<String, Object> map = ImmutableMap.of("x", "first", "y", "second", "z", "third");
-            MapSerializer<String> base = MapSerializer.INSTANCE.of(StringSerializer.INSTANCE);
+            MapSerializer<String> base = Storm.MAP.of(Storm.STRING);
             Assertions.assertAll(
                     () -> testSerializer(base.size(Range.atLeast(0)), map, map, true),
                     () -> testSerializer(base.size(Range.atLeast(5)), map, map, false),
@@ -446,7 +440,7 @@ class SerializerTests {
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testObject")
         void testObject(String test, Map<String, Serializer<?>> serializers, Map<String, ?> values, boolean success) {
-            testSerializer(ObjectSerializer.INSTANCE.of(serializers), values, values, success);
+            testSerializer(Storm.OBJECT.of(serializers), values, values, success);
         }
 
     }
@@ -454,17 +448,17 @@ class SerializerTests {
     private static Stream<Arguments> testObject() {
         return Stream.of(
                 Arguments.of("Empty", ImmutableMap.of(), ImmutableMap.of(), true),
-                Arguments.of("Boolean", ImmutableMap.of("b", BooleanSerializer.INSTANCE), ImmutableMap.of("b", true), true),
+                Arguments.of("Boolean", ImmutableMap.of("b", Storm.BOOLEAN), ImmutableMap.of("b", true), true),
                 Arguments.of("Boolean, Character, String",
-                        ImmutableMap.of("b", BooleanSerializer.INSTANCE, "c", CharacterSerializer.INSTANCE, "s", StringSerializer.INSTANCE),
+                        ImmutableMap.of("b", Storm.BOOLEAN, "c", Storm.CHARACTER, "s", Storm.STRING),
                         ImmutableMap.of("b", true, "c", 'c', "s", "string"),
                         true),
                 Arguments.of("Missing Property",
-                        ImmutableMap.of("x", BooleanSerializer.INSTANCE, "y", BooleanSerializer.INSTANCE),
+                        ImmutableMap.of("x", Storm.BOOLEAN, "y", Storm.BOOLEAN),
                         ImmutableMap.of("x", true),
                         false),
                 Arguments.of("Unexpected Property",
-                        ImmutableMap.of("x", BooleanSerializer.INSTANCE, "y", BooleanSerializer.INSTANCE),
+                        ImmutableMap.of("x", Storm.BOOLEAN, "y", Storm.BOOLEAN),
                         ImmutableMap.of("z", false),
                         false)
         );
@@ -476,20 +470,20 @@ class SerializerTests {
         @ParameterizedTest
         @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testUnion")
         void testUnion(String test, Map<Node.Type, Serializer<?>> serializers, Object value, boolean success) {
-            testDeserializer(UnionSerializer.INSTANCE.of(serializers), value, value, success);
+            testDeserializer(Storm.UNION.of(serializers), value, value, success);
         }
 
         @Test
         void testUnionUndefined() {
-            Assertions.assertEquals("undefined", Node.root().get(UnionSerializer.INSTANCE.of(ImmutableMap.of(
-                    Node.Type.NULL, NullableSerializer.INSTANCE.def("null"),
-                    Node.Type.UNDEFINED, OptionalSerializer.INSTANCE.def("undefined")
+            Assertions.assertEquals("undefined", Node.root().get(Storm.UNION.of(ImmutableMap.of(
+                    Node.Type.NULL, Storm.ANY_NULLABLE.def("null"),
+                    Node.Type.UNDEFINED, Storm.ANY_OPTIONAL.def("undefined")
             ))));
         }
 
         @Test
         void testUnionReserialization() {
-            testReserializer(UnionSerializer.INSTANCE, null, null, false);
+            testReserializer(Storm.UNION, null, null, false);
         }
 
     }
@@ -497,15 +491,15 @@ class SerializerTests {
     private static Stream<Arguments> testUnion() {
         return Stream.of(
                 Arguments.of("Empty", ImmutableMap.of(), null, false),
-                Arguments.of("Single", ImmutableMap.of(Node.Type.BOOLEAN, BooleanSerializer.INSTANCE), true, true),
+                Arguments.of("Single", ImmutableMap.of(Node.Type.BOOLEAN, Storm.BOOLEAN), true, true),
                 Arguments.of("Multiple", ImmutableMap.of(
-                        Node.Type.INTEGER, IntegerSerializer.BIG_INTEGER,
-                        Node.Type.DECIMAL, DecimalSerializer.BIG_DECIMAL,
-                        Node.Type.CHARACTER, CharacterSerializer.INSTANCE,
-                        Node.Type.STRING, StringSerializer.INSTANCE
+                        Node.Type.INTEGER, Storm.BIG_INTEGER,
+                        Node.Type.DECIMAL, Storm.BIG_DECIMAL,
+                        Node.Type.CHARACTER, Storm.CHARACTER,
+                        Node.Type.STRING, Storm.STRING
                 ), "string", true),
                 Arguments.of("Unknown",
-                        ImmutableMap.of(Node.Type.ARRAY, ListSerializer.INSTANCE),
+                        ImmutableMap.of(Node.Type.ARRAY, Storm.LIST),
                         ImmutableMap.of("x", BigInteger.ONE, "y", BigInteger.TEN),
                         false)
         );
@@ -516,7 +510,7 @@ class SerializerTests {
 
         @Test
         void testNullable() {
-            Serializer<String> serializer = NullableSerializer.INSTANCE.of(StringSerializer.INSTANCE);
+            Serializer<String> serializer = Storm.STRING.nullable();
             Assertions.assertAll(
                     () -> testSerializer(serializer, "string", "string", true),
                     () -> testSerializer(serializer, null, null, true),
@@ -526,7 +520,7 @@ class SerializerTests {
 
         @Test
         void testNullableDefault() {
-            NullableSerializer<String> serializer = NullableSerializer.INSTANCE.of(StringSerializer.INSTANCE).def("def");
+            NullableSerializer<String> serializer = Storm.STRING.nullable("def");
             Assertions.assertAll(
                     () -> testDeserializer(serializer, "string", "string", true),
                     () -> testDeserializer(serializer, null, "def", true),
@@ -543,7 +537,7 @@ class SerializerTests {
 
         @Test
         void testOptional() {
-            Serializer<Optional<String>> serializer = OptionalSerializer.INSTANCE.of(StringSerializer.INSTANCE);
+            Serializer<Optional<String>> serializer = Storm.STRING.optional();
             Assertions.assertAll(
                     () -> testSerializer(serializer, Optional.of("string"), "string", true),
                     () -> Assertions.assertEquals(Optional.empty(), Node.root().get(serializer)),
@@ -553,7 +547,7 @@ class SerializerTests {
 
         @Test
         void testOptionalDefault() {
-            OptionalSerializer.OptionalDefaultSerializer<String> serializer = OptionalSerializer.INSTANCE.of(StringSerializer.INSTANCE).def("def");
+            OptionalSerializer.OptionalDefaultSerializer<String> serializer = Storm.STRING.optional("def");
             Assertions.assertAll(
                     () -> testDeserializer(serializer, "string", "string", true),
                     () -> Assertions.assertEquals("def", Node.root().get(serializer)),
@@ -570,12 +564,12 @@ class SerializerTests {
 
     private static Stream<Arguments> testMap() {
         return Stream.of(
-                Arguments.of("Empty", BooleanSerializer.INSTANCE, ImmutableMap.of()),
-                Arguments.of("Integer Element", IntegerSerializer.BIG_INTEGER,
+                Arguments.of("Empty", Storm.BOOLEAN, ImmutableMap.of()),
+                Arguments.of("Integer Element", Storm.BIG_INTEGER,
                         ImmutableMap.of("key", BigInteger.ONE)),
-                Arguments.of("Character Elements", CharacterSerializer.INSTANCE,
+                Arguments.of("Character Elements", Storm.CHARACTER,
                         ImmutableMap.of("a",'a', "b", 'b', "c", 'c')),
-                Arguments.of("Invalid Type", StringSerializer.INSTANCE, null)
+                Arguments.of("Invalid Type", Storm.STRING, null)
         );
     }
 
@@ -594,16 +588,16 @@ class SerializerTests {
 
     private static Stream<Arguments> testCommentRetention() {
         return Stream.of(
-                Arguments.of("List", ListSerializer.INSTANCE.of(StringSerializer.INSTANCE),
+                Arguments.of("List", Storm.LIST.of(Storm.STRING),
                         ImmutableList.of("first", "second", "third"),
                         ImmutableList.of("first", "third")),
-                Arguments.of("Tuple", TupleSerializer.INSTANCE.of(ImmutableList.of(StringSerializer.INSTANCE, StringSerializer.INSTANCE)),
+                Arguments.of("Tuple", Storm.TUPLE.of(ImmutableList.of(Storm.STRING, Storm.STRING)),
                         ImmutableList.of("first", "second", "third"),
                         ImmutableList.of("first", "third")),
-                Arguments.of("Map", MapSerializer.INSTANCE.of(StringSerializer.INSTANCE),
+                Arguments.of("Map", Storm.MAP.of(Storm.STRING),
                         ImmutableMap.of("x", "first", "y", "second", "z", "third"),
                         ImmutableMap.of("x", "first", "z", "third")),
-                Arguments.of("Object", ObjectSerializer.INSTANCE.of(ImmutableMap.of("x", StringSerializer.INSTANCE, "z", StringSerializer.INSTANCE)),
+                Arguments.of("Object", Storm.OBJECT.of(ImmutableMap.of("x", Storm.STRING, "z", Storm.STRING)),
                         ImmutableMap.of("x", "first", "y", "second", "z", "third"),
                         ImmutableMap.of("x", "first", "z", "third"))
         );
