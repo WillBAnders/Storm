@@ -18,6 +18,7 @@ import dev.willbanders.storm.serializer.primitive.OptionalSerializer;
 import dev.willbanders.storm.serializer.primitive.SetSerializer;
 import dev.willbanders.storm.serializer.primitive.StringSerializer;
 import dev.willbanders.storm.serializer.primitive.TupleSerializer;
+import dev.willbanders.storm.serializer.primitive.UnionSerializer;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 class SerializerTests {
@@ -439,6 +439,47 @@ class SerializerTests {
                 Arguments.of("Unexpected Property",
                         ImmutableMap.of("x", BooleanSerializer.INSTANCE, "y", BooleanSerializer.INSTANCE),
                         ImmutableMap.of("z", false),
+                        false)
+        );
+    }
+
+    @Nested
+    class UnionTests {
+
+        @ParameterizedTest
+        @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testUnion")
+        void testUnion(String test, Map<Node.Type, Serializer<?>> serializers, Object value, boolean success) {
+            testDeserializer(UnionSerializer.INSTANCE.of(serializers), value, value, success);
+        }
+
+        @Test
+        void testUnionUndefined() {
+            Assertions.assertEquals("undefined", Node.root().get(UnionSerializer.INSTANCE.of(ImmutableMap.of(
+                    Node.Type.NULL, NullableSerializer.INSTANCE.def("null"),
+                    Node.Type.UNDEFINED, OptionalSerializer.INSTANCE.def("undefined")
+            ))));
+        }
+
+        @Test
+        void testUnionReserialization() {
+            testReserializer(UnionSerializer.INSTANCE, null, null, false);
+        }
+
+    }
+
+    private static Stream<Arguments> testUnion() {
+        return Stream.of(
+                Arguments.of("Empty", ImmutableMap.of(), null, false),
+                Arguments.of("Single", ImmutableMap.of(Node.Type.BOOLEAN, BooleanSerializer.INSTANCE), true, true),
+                Arguments.of("Multiple", ImmutableMap.of(
+                        Node.Type.INTEGER, IntegerSerializer.BIG_INTEGER,
+                        Node.Type.DECIMAL, DecimalSerializer.BIG_DECIMAL,
+                        Node.Type.CHARACTER, CharacterSerializer.INSTANCE,
+                        Node.Type.STRING, StringSerializer.INSTANCE
+                ), "string", true),
+                Arguments.of("Unknown",
+                        ImmutableMap.of(Node.Type.ARRAY, ListSerializer.INSTANCE),
+                        ImmutableMap.of("x", BigInteger.ONE, "y", BigInteger.TEN),
                         false)
         );
     }
