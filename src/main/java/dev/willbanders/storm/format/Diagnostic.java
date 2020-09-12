@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-public class Diagnostic {
+public final class Diagnostic {
 
     private final String input;
     private final String summary;

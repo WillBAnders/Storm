@@ -50,17 +50,17 @@ public final class NullableSerializer<T> implements Serializer<T> {
     }
 
     /**
-     * Returns a new NullableSerializer that delegates to the given serializer
-     * if the node value is not {@link Node.Type#NULL}.
+     * Returns a new serializer that delegates to the given serializer if the
+     * node value is not {@link Node.Type#NULL}.
      */
     public <T> NullableSerializer<T> of(Serializer<T> serializer) {
         return new NullableSerializer<>(serializer, null, false);
     }
 
     /**
-     * Sets the default value for when the node is {@link Node.Type#NULL}. By
-     * default, this will be reserialized to the corresponding value and not
-     * converted to {@code null}.
+     * Returns a new serializer with a default value for when the node is {@link
+     * Node.Type#NULL}. By default, this will be reserialized to the
+     * corresponding config value and not converted to {@code null}.
      *
      * @see #convertDef(boolean)
      */
@@ -69,8 +69,9 @@ public final class NullableSerializer<T> implements Serializer<T> {
     }
 
     /**
-     * True if the default value should be reserialized to {@code null} instead
-     * of it's normal value. The default behavior is {@code false}.
+     * Returns a new serializer that reserializes the default value to {@code
+     * null} if {@code true} else to the corresponding config value. The default
+     * behavior is {@code false}.
      */
     public NullableSerializer<T> convertDef(boolean convertDef) {
         return new NullableSerializer<>(serializer, def, convertDef);

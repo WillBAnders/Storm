@@ -59,7 +59,7 @@ public final class MapSerializer<T> implements Serializer<Map<String, T>> {
     }
 
     /**
-     * Returns a new MapSerializer that delegates to the given serializer for
+     * Returns a new serializer that delegates to the given serializer for
      * serializing values.
      */
     public <T> MapSerializer<T> of(Serializer<T> serializer) {

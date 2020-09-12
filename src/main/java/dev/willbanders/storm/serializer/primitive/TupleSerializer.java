@@ -59,6 +59,10 @@ public final class TupleSerializer<T> implements Serializer<List<T>> {
         }
     }
 
+    /**
+     * Returns a new serializer that delegates serialization of each tuple
+     * element to the given serializers at the corresponding index.
+     */
     public <T> TupleSerializer<T> of(List<Serializer<? extends T>> serializers) {
         return new TupleSerializer<>(serializers);
     }

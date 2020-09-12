@@ -7,7 +7,6 @@ import dev.willbanders.storm.config.Node;
 import dev.willbanders.storm.serializer.SerializationException;
 import dev.willbanders.storm.serializer.Serializer;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
@@ -63,6 +62,11 @@ public final class ObjectSerializer<T> implements Serializer<Map<String, ? exten
         }
     }
 
+    /**
+     * Returns a new serializer delegating to the given serializer corresponding
+     * the node's key. Unknown keys are considered errors, as are missing keys
+     * during reserialization.
+     */
     public <T> ObjectSerializer<T> of(Map<String, Serializer<? extends T>> serializers) {
         return new ObjectSerializer<>(serializers);
     }

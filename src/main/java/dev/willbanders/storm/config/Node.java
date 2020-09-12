@@ -173,7 +173,7 @@ public final class Node {
      *     <li>{@link BigDecimal}: DECIMAL</li>
      *     <li>{@link Character}: CHARACTER</li>
      *     <li>{@link String}: STRING</li>
-     *     <li>{@link List}: ARRAY (with supported values</li>
+     *     <li>{@link List}: ARRAY (with supported values)</li>
      *     <li>{@link Map}: OBJECT (with string keys and supported values)</li>
      * </ul>
      *
@@ -198,7 +198,7 @@ public final class Node {
         } else if (value instanceof String) {
             type = Type.STRING;
         } else if (value instanceof List) {
-            List<Node> list = new ArrayList<>();
+            List<Node> list = Lists.newArrayList();
             for (Object element : (List<?>) value) {
                 Node node = new Node(this, list.size(), true);
                 node.setValue(element);
@@ -207,7 +207,7 @@ public final class Node {
             type = Type.ARRAY;
             value = list;
         } else if (value instanceof Map) {
-            Map<String, Node> map = new LinkedHashMap<>();
+            Map<String, Node> map = Maps.newLinkedHashMap();
             for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
                 Preconditions.checkState(entry.getKey() instanceof String, "Unsupported map key type " + value.getClass().getName() + ".");
                 Node node = new Node(this, entry.getKey(), true);
@@ -313,10 +313,10 @@ public final class Node {
             }
             if (child.key instanceof Integer) {
                 type = Type.ARRAY;
-                value = new ArrayList<>();
+                value = Lists.newArrayList();
             } else if (child.key instanceof String) {
                 type = Type.OBJECT;
-                value = new LinkedHashMap<>();
+                value = Maps.newLinkedHashMap();
             } else {
                 throw new AssertionError();
             }

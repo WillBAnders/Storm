@@ -32,7 +32,7 @@ public final class SetSerializer<T> implements Serializer<Set<T>> {
     @Override
     public Set<T> deserialize(Node node) throws SerializationException {
         List<T> list = node.get(delegate);
-        Set<T> value = Sets.newHashSet(list);
+        Set<T> value = Sets.newLinkedHashSet(list);
         if (value.size() != list.size()) {
             Map<T, Integer> map = Maps.newHashMap();
             for (int i = 0; i < list.size(); i++) {

@@ -46,17 +46,17 @@ public final class OptionalSerializer<T> implements Serializer<Optional<T>> {
     }
 
     /**
-     * Returns a new OptionalSerializer that delegates to the given serializer
-     * if the node value is not {@link Node.Type#UNDEFINED}.
+     * Returns a new serializer that delegates to the given serializer if the
+     * node value is not {@link Node.Type#UNDEFINED}.
      */
     public <T> OptionalSerializer<T> of(Serializer<T> serializer) {
         return new OptionalSerializer<>(serializer);
     }
 
     /**
-     * Sets the default value for when the node is {@link Node.Type#UNDEFINED}.
-     * By default, this will be reserialized to the corresponding value and not
-     * converted to undefined.
+     * Returns a new serializer with a default value for when the node is {@link
+     * Node.Type#UNDEFINED}. By default, this will be reserialized to the
+     * corresponding config value and not converted to {@code undefined}.
      *
      * @see OptionalDefaultSerializer#convertDef(boolean)
      */
@@ -96,8 +96,9 @@ public final class OptionalSerializer<T> implements Serializer<Optional<T>> {
         }
 
         /**
-         * True if the default value should be reserialized to {@code undefined}
-         * instead of it's normal value. The default behavior is {@code false}.
+         * Returns a new serializer that reserializes the default value to
+         * {@code undefined} if {@code true} else to the corresponding config
+         * value. The default behavior is {@code false}.
          */
         public OptionalDefaultSerializer<T> convertDef(boolean convertDef) {
             return new OptionalDefaultSerializer<>(serializer, def, convertDef);

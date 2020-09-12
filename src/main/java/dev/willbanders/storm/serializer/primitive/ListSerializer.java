@@ -58,7 +58,7 @@ public final class ListSerializer<T> implements Serializer<List<T>> {
     }
 
     /**
-     * Returns a new ListSerializer that delegates to the given serializer for
+     * Returns a new serializer that delegates to the given serializer for
      * serializing elements.
      */
     public <T> ListSerializer<T> of(Serializer<T> serializer) {
