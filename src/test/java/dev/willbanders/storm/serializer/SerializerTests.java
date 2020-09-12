@@ -5,6 +5,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Range;
 import dev.willbanders.storm.config.Node;
+import dev.willbanders.storm.serializer.primitive.AnySerializer;
 import dev.willbanders.storm.serializer.primitive.BooleanSerializer;
 import dev.willbanders.storm.serializer.primitive.CharacterSerializer;
 import dev.willbanders.storm.serializer.primitive.DecimalSerializer;
@@ -35,6 +36,32 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 class SerializerTests {
+
+    @Nested
+    class AnyTests {
+
+        @ParameterizedTest
+        @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testAny")
+        void testAny(String test, Object value) {
+            testSerializer(AnySerializer.INSTANCE, value, value, value != null);
+        }
+
+        @Test
+        void testAnyUndefined() {
+            Assertions.assertThrows(SerializationException.class, () -> Node.root().get(AnySerializer.INSTANCE));
+        }
+
+    }
+
+    private static Stream<Arguments> testAny() {
+        return Stream.of(
+                Arguments.of("Null", null),
+                Arguments.of("Boolean", true),
+                Arguments.of("Integer", BigInteger.ONE),
+                Arguments.of("String", "string"),
+                Arguments.of("Array", ImmutableList.of('a', 'b', 'c'))
+        );
+    }
 
     @ParameterizedTest
     @MethodSource

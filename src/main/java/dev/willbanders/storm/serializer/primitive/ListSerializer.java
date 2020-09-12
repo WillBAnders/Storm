@@ -18,7 +18,7 @@ import java.util.List;
  */
 public final class ListSerializer<T> implements Serializer<List<T>> {
 
-    public static final ListSerializer<Object> INSTANCE = new ListSerializer<>(null, null);
+    public static final ListSerializer<Object> INSTANCE = new ListSerializer<>(NullableSerializer.INSTANCE, Range.all());
 
     private final Serializer<T> serializer;
     private final Range<Integer> size;

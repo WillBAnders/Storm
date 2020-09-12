@@ -19,7 +19,7 @@ import java.util.Set;
  */
 public final class SetSerializer<T> implements Serializer<Set<T>> {
 
-    public static final SetSerializer<Object> INSTANCE = new SetSerializer<>(null, Range.all());
+    public static final SetSerializer<Object> INSTANCE = new SetSerializer<>(NullableSerializer.INSTANCE, Range.all());
 
     private final Serializer<T> serializer;
     private final Serializer<List<T>> delegate;

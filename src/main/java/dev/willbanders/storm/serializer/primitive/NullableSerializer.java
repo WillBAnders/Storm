@@ -18,7 +18,7 @@ import java.util.Objects;
  */
 public final class NullableSerializer<T> implements Serializer<T> {
 
-    public static final NullableSerializer<Object> INSTANCE = new NullableSerializer<>(null, null, false);
+    public static final NullableSerializer<Object> INSTANCE = new NullableSerializer<>(AnySerializer.INSTANCE, null, false);
 
     private final Serializer<T> serializer;
     private final T def;

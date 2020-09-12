@@ -19,7 +19,7 @@ import java.util.Map;
  */
 public final class MapSerializer<T> implements Serializer<Map<String, T>> {
 
-    public static final MapSerializer<Object> INSTANCE = new MapSerializer<>(null, Range.all());
+    public static final MapSerializer<Object> INSTANCE = new MapSerializer<>(NullableSerializer.INSTANCE, Range.all());
 
     private final Serializer<T> serializer;
     private final Range<Integer> size;

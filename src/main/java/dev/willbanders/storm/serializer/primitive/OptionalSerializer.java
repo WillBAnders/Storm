@@ -20,7 +20,7 @@ import java.util.Optional;
  */
 public final class OptionalSerializer<T> implements Serializer<Optional<T>> {
 
-    public static final OptionalSerializer<Object> INSTANCE = new OptionalSerializer<>(null);
+    public static final OptionalSerializer<Object> INSTANCE = new OptionalSerializer<>(AnySerializer.INSTANCE);
 
     private final Serializer<T> serializer;
 
