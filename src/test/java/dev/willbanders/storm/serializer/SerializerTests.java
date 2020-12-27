@@ -573,6 +573,153 @@ class SerializerTests {
         );
     }
 
+    @Nested
+    class ClassTests {
+
+        @ParameterizedTest
+        @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testClass")
+        <T extends ClassTestsExample> void testClass(String test, Class<T> clazz, T value, Map<String, Object> expected, boolean reserializable) {
+            Assertions.assertAll(
+                    () -> testDeserializer(Storm.CLASS.of(clazz), expected, value, true),
+                    () -> testReserializer(Storm.CLASS.of(clazz), value, expected, reserializable)
+            );
+        }
+
+        @Test
+        void testInvalidClass() {
+            Assertions.assertThrows(IllegalArgumentException.class, () -> Storm.CLASS.of(ClassTestsExample.FieldsInvalidConstructor.class));
+        }
+
+    }
+
+    private static Stream<Arguments> testClass() {
+        ClassTestsExample.FieldsDefaultConstructor fdc = new ClassTestsExample.FieldsDefaultConstructor();
+        fdc.name = "Name";
+        fdc.age = 1;
+        ClassTestsExample.FieldsCustomConstructor fcc = new ClassTestsExample.FieldsCustomConstructor("Name", 1);
+        ClassTestsExample.MethodsDeserialization md = new ClassTestsExample.MethodsDeserialization("Name");
+        md.age = 1;
+        ClassTestsExample.MethodsReserialization mr = new ClassTestsExample.MethodsReserialization("Name");
+        mr.age = 1;
+        ImmutableMap<String, Object> expected = ImmutableMap.of("name", "Name", "age", BigInteger.ONE);
+        return Stream.of(
+                Arguments.of("Fields Default Constructor", ClassTestsExample.FieldsDefaultConstructor.class, fdc, expected, true),
+                Arguments.of("Fields Custom Constructor", ClassTestsExample.FieldsCustomConstructor.class, fcc, expected, true),
+                Arguments.of("Methods Deserialization", ClassTestsExample.MethodsDeserialization.class, md, expected, false),
+                Arguments.of("Methods Reserialization", ClassTestsExample.MethodsReserialization.class, mr, expected, true)
+        );
+    }
+
+    private static abstract class ClassTestsExample {
+
+        @Storm.Serialized
+        private static class FieldsDefaultConstructor extends ClassTestsExample {
+
+            private String name = null;
+            private int age = 0;
+
+            @Override
+            public List<Object> getFields() {
+                return ImmutableList.of(name, age);
+            }
+
+        }
+
+        @Storm.Serialized
+        private static class FieldsCustomConstructor extends ClassTestsExample {
+
+            private final String name;
+            private final int age;
+
+            public FieldsCustomConstructor(String name, int age) {
+                this.name = name;
+                this.age = age;
+            }
+
+            @Override
+            public List<Object> getFields() {
+                return ImmutableList.of(name, age);
+            }
+
+        }
+
+        @Storm.Serialized
+        private static class FieldsInvalidConstructor extends ClassTestsExample {
+
+            private final String name;
+            private int age = 0;
+
+            public FieldsInvalidConstructor(String name) {
+                this.name = name;
+            }
+
+            @Override
+            public List<Object> getFields() {
+                return ImmutableList.of(name, age);
+            }
+
+        }
+
+        @Storm.Serialized
+        private static class MethodsDeserialization extends ClassTestsExample {
+
+            private final String name;
+            private int age = 0;
+
+            private MethodsDeserialization(String name) {
+                this.name = name;
+            }
+
+            private static MethodsDeserialization deserialize(Node node) {
+                MethodsDeserialization value = new MethodsDeserialization(node.get("name", Storm.STRING));
+                value.age = node.get("age", Storm.INTEGER.optional(0));
+                return value;
+            }
+
+            @Override
+            public List<Object> getFields() {
+                return ImmutableList.of(name, age);
+            }
+
+        }
+
+        @Storm.Serialized
+        private static class MethodsReserialization extends ClassTestsExample {
+
+            private final String name;
+            private int age = 0;
+
+            private MethodsReserialization(String name) {
+                this.name = name;
+            }
+
+            private static MethodsReserialization deserialize(Node node) {
+                MethodsReserialization value = new MethodsReserialization(node.get("name", Storm.STRING));
+                value.age = node.get("age", Storm.INTEGER.optional(0));
+                return value;
+            }
+
+            private static void reserialize(Node node, MethodsReserialization value) {
+                node.set("name", value.name, Storm.STRING);
+                node.set("age", value.age, Storm.INTEGER.optional(0).convertDef(true));
+            }
+
+            @Override
+            public List<Object> getFields() {
+                return ImmutableList.of(name, age);
+            }
+
+        }
+
+        public abstract List<Object> getFields();
+
+        @Override
+        public boolean equals(Object o) {
+            return getClass().equals(o.getClass()) && getFields().equals(((ClassTestsExample) o).getFields());
+        }
+
+    }
+
     @ParameterizedTest
     @MethodSource("dev.willbanders.storm.serializer.SerializerTests#testCommentRetention")
     <T> void testCommentRetention(String test, Serializer<T> serializer, T start, T value) {
