@@ -22,7 +22,7 @@ public final class StormLexer extends Lexer<StormTokenType> {
             return lexComment();
         } else if (peek("[\n\r]")) {
             return lexNewline();
-        } else if (peek("[a-z]")) {
+        } else if (peek("[A-Za-z_]")) {
             return lexIdentifier();
         } else if (peek("[0-9]") || peek("[+-]", "[0-9]")) {
             return lexNumber();
@@ -59,8 +59,8 @@ public final class StormLexer extends Lexer<StormTokenType> {
     }
 
     private Token<StormTokenType> lexIdentifier() {
-        Preconditions.checkState(match("[a-z]"), "Broken lexer invariant.");
-        while (match("[a-z_-]")) {}
+        Preconditions.checkState(match("[A-Za-z_]"), "Broken lexer invariant.");
+        while (match("[A-Za-z0-9_-]")) {}
         return chars.emit(StormTokenType.IDENTIFIER);
     }
 

@@ -50,7 +50,7 @@ public final class StormParser extends Parser<StormTokenType> {
         } else {
             while (match(StormTokenType.NEWLINE)) {}
         }
-        if (!peek(StormTokenType.IDENTIFIER) || peek(Arrays.asList("null", "true", "false"))) {
+        if (!peek(Arrays.asList(StormTokenType.IDENTIFIER, StormTokenType.STRING), "=")) {
             if (!comment.isEmpty()) {
                 if (!node.getComment().isEmpty()) {
                     throw error(Diagnostic.builder()
@@ -171,10 +171,12 @@ public final class StormParser extends Parser<StormTokenType> {
 
     private void parseProperty(Node node, Map<String, Diagnostic.Range> defined) throws ParseException {
         String comment = parseComment();
-        require(match(StormTokenType.IDENTIFIER), () -> Diagnostic.builder()
+        require(match(Arrays.asList(StormTokenType.IDENTIFIER, StormTokenType.STRING)), () -> Diagnostic.builder()
                 .summary("Expected an identifier for property key.")
-                .details("A property has the form 'key = value', where key is an identifier (a-z followed by a-z, _, or -). Strings and other symbols are not allowed."));
-        String key = tokens.get(-1).getLiteral();
+                .details("A property has the form 'key = value', where key is an identifier (alphanumeric, '_', or '-' starting with a letter or '_') or a string."));
+        String key = tokens.get(-1).getType() == StormTokenType.IDENTIFIER
+                ? tokens.get(-1).getLiteral()
+                : unescape(tokens.get(-1).getLiteral().substring(1, tokens.get(-1).getLiteral().length() - 1));
         if (defined.containsKey(key)) {
             context.push(defined.get(key));
             throw error(Diagnostic.builder()

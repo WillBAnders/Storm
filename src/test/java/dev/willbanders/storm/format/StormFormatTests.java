@@ -186,8 +186,10 @@ public class StormFormatTests {
     private static Stream<Arguments> testObject() {
         return Stream.of(
                 Arguments.of("Empty", "{}", ImmutableMap.of()),
-                Arguments.of("Single Value", "{a=true}", ImmutableMap.of("a", true)),
-                Arguments.of("Multiple Values", "{a=\'a\',b=\'b\',c=\'c\'}", ImmutableMap.of("a", 'a', "b", 'b', "c", 'c')),
+                Arguments.of("Single Property", "{a=true}", ImmutableMap.of("a", true)),
+                Arguments.of("Multiple Properties", "{a=\'a\',b=\'b\',c=\'c\'}", ImmutableMap.of("a", 'a', "b", 'b', "c", 'c')),
+                Arguments.of("String Key", "{\"0\"=true}", ImmutableMap.of("0", true)),
+                Arguments.of("String Key Escapes", "{\"\\\'\"=true}", ImmutableMap.of("\'", true)),
                 Arguments.of("Newline Separators", "{\na=\'a\'\n\nb=\'b\'\n\n\n}", ImmutableMap.of("a", 'a', "b", 'b')),
                 Arguments.of("Trailing Comma", "{a=\'a\',}", ImmutableMap.of("a", 'a')),
                 Arguments.of("Nested Objects", "{x={},y={z=\'z\'}}", ImmutableMap.of("x", ImmutableMap.of(), "y", ImmutableMap.of("z", 'z'))),
@@ -257,8 +259,8 @@ public class StormFormatTests {
                 Arguments.of("Unterminated Array", "[1, 2", Diagnostic.range(4, 1, 5, 1)),
                 Arguments.of("Invalid Property Separator", "{x=1 y=2}", Diagnostic.range(5, 1, 6, 1)),
                 Arguments.of("Unterminated Object", "{x=1, y=2", Diagnostic.range(8, 1, 9, 1)),
-                Arguments.of("Invalid Property Key", "{\"x\"=1}", Diagnostic.range(1, 1, 2, 3)),
-                Arguments.of("Invalid Property Key-Value Separator", "{x1}", Diagnostic.range(2, 1, 3, 1)),
+                Arguments.of("Invalid Property Key", "{1=2}", Diagnostic.range(1, 1, 2, 1)),
+                Arguments.of("Invalid Property Key-Value Separator", "{x:1}", Diagnostic.range(2, 1, 3, 1)),
                 Arguments.of("Missing Property Equals And Value", "{x", Diagnostic.range(1, 1, 2, 1)),
                 Arguments.of("Missing Property Value", "{x=", Diagnostic.range(1, 1, 2, 2)),
                 Arguments.of("Duplicate Property Key", "{x=1, x=2}", Diagnostic.range(6, 1, 7, 1)),

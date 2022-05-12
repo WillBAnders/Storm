@@ -93,7 +93,12 @@ public final class StormGenerator extends Generator {
         int i = 0;
         for (Map.Entry<String, Node> entry : node.getMap().entrySet()) {
             generateComment(entry.getValue());
-            write(entry.getKey(), " = ", entry.getValue());
+            if (entry.getKey().matches("[A-Za-z_][A-Za-z0-9_-]*")) {
+                write(entry.getKey());
+            } else {
+                write("\"", escape(entry.getKey()) + "\"");
+            }
+            write(" = ", entry.getValue());
             if (i++ != node.getMap().size() - 1) {
                 newline(indent);
             }
