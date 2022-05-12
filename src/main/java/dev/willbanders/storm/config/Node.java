@@ -3,6 +3,7 @@ package dev.willbanders.storm.config;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import dev.willbanders.storm.Storm;
 import dev.willbanders.storm.serializer.SerializationException;
 import dev.willbanders.storm.serializer.Serializer;
 
@@ -393,8 +394,8 @@ public final class Node {
     }
 
     /**
-     * Deserializes a value from the node located at the given path relative
-     * to this node using the given serializer.
+     * Deserializes a value from the node located at the given path relative to
+     * this node using the given serializer.
      *
      * @throws SerializationException if the node could not be deserialized
      * @see #get(String)
@@ -405,10 +406,31 @@ public final class Node {
     }
 
     /**
+     * Deserializes a value using the serializer registered for the given class.
+     *
+     * @throws SerializationException if the node could not be deserialized
+     */
+    public <T> T get(Class<T> clazz) throws SerializationException {
+        return get(Storm.SCOPE.get(clazz));
+    }
+
+    /**
+     * Deserializes a value from the node located at the given path relative to
+     * this node using the serializer registered for the given class.
+     *
+     * @throws SerializationException if the node could not be deserialized
+     * @see #get(Class)
+     * @see #get(String, Serializer)
+     */
+    public <T> T get(String path, Class<T> clazz) throws SerializationException {
+        return get(path, Storm.SCOPE.get(clazz));
+    }
+
+    /**
      * Reserializes the value to this node using the given serializer.
      *
-     * @throws SerializationException if the node could not be serialized
-     * @see Serializer#reserialize(Node, Object) 
+     * @throws SerializationException if the value could not be reserialized
+     * @see Serializer#reserialize(Node, Object)
      */
     public <T> void set(T value, Serializer<T> serializer) throws SerializationException {
         serializer.reserialize(this, value);
@@ -418,12 +440,47 @@ public final class Node {
      * Reserializes the value to the node located at the given path relative to
      * this node using the given serializer.
      *
-     * @throws SerializationException if the node could not be serialized
+     * @throws SerializationException if the value could not be reserialized
      * @see #get(String)
      * @see #set(Object, Serializer)
      */
     public <T> void set(String path, T value, Serializer<T> serializer) throws SerializationException {
         get(path).set(value, serializer);
+    }
+
+    /**
+     * Reserializes the value to this node using the serializer registered for
+     * the value's class.
+     *
+     * @throws SerializationException if the value could not be reserialized
+     */
+    public <T> void set(T value) throws SerializationException {
+        set(value, Storm.SCOPE.get((Class<T>) value.getClass()));
+    }
+
+    /**
+     * Reserializes the value to this node using the serializer registered for
+     * the value's class.
+     *
+     * @throws SerializationException if the value could not be reserialized
+     * @see #get(String)
+     * @see #set(Object)
+     */
+    public <T> void set(String path, T value) throws SerializationException {
+        get(path).set(value);
+    }
+
+    /**
+     * Reserialize the value to this node using the given serializer. This
+     * method is defined to avoid resolution ambiguity between {@link
+     * #set(Object, Serializer)} and {@link #set(String, Object)} for strings,
+     * since both methods could apply.
+     *
+     * @throws SerializationException if the value could not be reserialized
+     * @see Serializer#reserialize(Node, Object)
+     */
+    public void set(String value, Serializer<String> serializer) throws SerializationException {
+        serializer.reserialize(this, value);
     }
 
 }
