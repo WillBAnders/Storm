@@ -71,7 +71,7 @@ public abstract class Generator {
     }
 
     protected void generateDecimal(Node node) {
-        write(node.getValue());
+        write(node.getValue().toString().replace('E', 'e'));
     }
 
     protected void generateCharacter(Node node) {

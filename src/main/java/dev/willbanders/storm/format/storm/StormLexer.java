@@ -67,9 +67,24 @@ public final class StormLexer extends Lexer<StormTokenType> {
     private Token<StormTokenType> lexNumber() {
         match("[+-]");
         Preconditions.checkState(match("[0-9]"), "Broken lexer invariant.");
+        if (chars.get(-1) == '0' && peek("[box]")) {
+            if (match('b', "[0-1]")) {
+                while (match("[0-1]")) {}
+                return chars.emit(StormTokenType.INTEGER);
+            } else if (match('o', "[0-7]")) {
+                while (match("[0-7]")) {}
+                return chars.emit(StormTokenType.INTEGER);
+            } else if (match('x', "[0-9A-F]")) {
+                while (match("[0-9A-F]")) {}
+                return chars.emit(StormTokenType.INTEGER);
+            }
+        }
         while (match("[0-9]")) {}
         if (match('.', "[0-9]")) {
             while (match("[0-9]")) {}
+            if (match('e', "[0-9]") || match('e', "[+\\-]", "[0-9]")) {
+                while (match("[0-9]")) {}
+            }
             return chars.emit(StormTokenType.DECIMAL);
         }
         return chars.emit(StormTokenType.INTEGER);

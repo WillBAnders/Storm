@@ -112,7 +112,18 @@ public final class StormParser extends Parser<StormTokenType> {
         } else if (match(Arrays.asList("true", "false"))) {
             node.attach().setValue(Boolean.parseBoolean(tokens.get(-1).getLiteral()));
         } else if (match(StormTokenType.INTEGER)) {
-            node.attach().setValue(new BigInteger(tokens.get(-1).getLiteral()));
+            String literal = tokens.get(-1).getLiteral();
+            BigInteger value;
+            if (literal.startsWith("0b")) {
+                value = new BigInteger(literal.substring(2), 2);
+            } else if (literal.startsWith("0o")) {
+                value = new BigInteger(literal.substring(2), 8);
+            } else if (literal.startsWith("0x")) {
+                value = new BigInteger(literal.substring(2), 16);
+            } else {
+                value = new BigInteger(literal);
+            }
+            node.attach().setValue(value);
         } else if (match(StormTokenType.DECIMAL)) {
             node.attach().setValue(new BigDecimal(tokens.get(-1).getLiteral()));
         } else if (match(StormTokenType.CHARACTER)) {

@@ -76,23 +76,22 @@ public class StormFormatTests {
 
     @ParameterizedTest
     @MethodSource
-    void testInteger(String test, String input) {
-        BigInteger integer = null;
-        try {
-            integer = new BigInteger(input);
-        } catch (NumberFormatException ignored) {}
-        test(input, integer, Node.Type.INTEGER);
+    void testInteger(String test, String input, BigInteger value) {
+        test(input, value, Node.Type.INTEGER);
     }
 
     private static Stream<Arguments> testInteger() {
         return Stream.of(
-                Arguments.of("Single Digit", "0"),
-                Arguments.of("Multiple Digits", "123"),
-                Arguments.of("Above Long Max", "123456789123456789123456789"),
-                Arguments.of("Leading Zeros", "007"),
-                Arguments.of("Trailing Zeros", "700"),
-                Arguments.of("Positive Sign", "+10"),
-                Arguments.of("Negative Sign", "-10")
+                Arguments.of("Single Digit", "0", new BigInteger("0")),
+                Arguments.of("Multiple Digits", "123", new BigInteger("123")),
+                Arguments.of("Above Long Max", "123456789123456789123456789", new BigInteger("123456789123456789123456789")),
+                Arguments.of("Leading Zeros", "007", new BigInteger("007")),
+                Arguments.of("Trailing Zeros", "700", new BigInteger("700")),
+                Arguments.of("Positive Sign", "+10", new BigInteger("+10")),
+                Arguments.of("Negative Sign", "-10", new BigInteger("-10")),
+                Arguments.of("Binary", "0b10", new BigInteger("10", 2)),
+                Arguments.of("Octal", "0o123", new BigInteger("123", 8)),
+                Arguments.of("Hexadecimal", "0x123ABC", new BigInteger("123ABC", 16))
         );
     }
 
@@ -114,7 +113,9 @@ public class StormFormatTests {
                 Arguments.of("Leading Zeros", "007.0"),
                 Arguments.of("Trailing Zeros", "0.700"),
                 Arguments.of("Positive Sign", "+10.0"),
-                Arguments.of("Negative Sign", "-10.0")
+                Arguments.of("Negative Sign", "-10.0"),
+                Arguments.of("Scientific", "123.456e789"),
+                Arguments.of("Signed Exponent", "123.456e-789")
         );
     }
 
