@@ -6,6 +6,7 @@ import dev.willbanders.storm.format.Generator;
 
 import java.io.PrintWriter;
 import java.util.Map;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public final class JsonGenerator extends Generator {
@@ -50,18 +51,22 @@ public final class JsonGenerator extends Generator {
     }
 
     private String escape(String string) {
-        return ESCAPES.matcher(string).replaceAll((match) -> {
-            switch (match.group()) {
-                case "\b": return "\\\\b";
-                case "\f": return "\\\\f";
-                case "\n": return "\\\\n";
-                case "\r": return "\\\\r";
-                case "\t": return "\\\\t";
-                case "\"": return "\\\\\"";
-                case "\\": return "\\\\\\\\";
-                default: return String.format("\\\\u%04X", (int) match.group().charAt(0));
+        Matcher matcher = ESCAPES.matcher(string);
+        StringBuffer buffer = new StringBuffer();
+        while (matcher.find()) {
+            switch (matcher.group()) {
+                case "\b": matcher.appendReplacement(buffer, "\\\\b"); break;
+                case "\f": matcher.appendReplacement(buffer, "\\\\f"); break;
+                case "\n": matcher.appendReplacement(buffer, "\\\\n"); break;
+                case "\r": matcher.appendReplacement(buffer, "\\\\r"); break;
+                case "\t": matcher.appendReplacement(buffer, "\\\\t"); break;
+                case "\"": matcher.appendReplacement(buffer, "\\\\\""); break;
+                case "\\": matcher.appendReplacement(buffer, "\\\\\\\\"); break;
+                default: matcher.appendReplacement(buffer, String.format("\\\\u%04X", (int) matcher.group().charAt(0)));
             }
-        });
+        }
+        matcher.appendTail(buffer);
+        return buffer.toString();
     }
 
     @Override
