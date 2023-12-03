@@ -76,8 +76,7 @@ public final class JsonLexer extends Lexer<JsonTokenType> {
         }
         require(match('\"'), () -> Diagnostic.builder()
                 .summary("Unterminated string literal.")
-                .details("A string literal must be surrounded by double quotes, such as \"abc\". If a literal double-quote is desired, use an escape as in \"abc\\\"123\".")
-                .range(chars.getRange()));
+                .details("A string literal must be surrounded by double quotes, such as \"abc\". If a literal double-quote is desired, use an escape as in \"abc\\\"123\"."));
         return chars.emit(JsonTokenType.STRING);
     }
 

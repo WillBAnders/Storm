@@ -205,6 +205,9 @@ public class JsonFormatTests {
 
     private static Stream<Arguments> testDiagnosticRange() {
         return Stream.of(
+                Arguments.of("Empty", "", Diagnostic.range(0, 1, 1, 0)),
+                Arguments.of("Empty Whitespace", " \t", Diagnostic.range(2, 1, 3, 0)),
+                Arguments.of("Empty Newline", " \n\t", Diagnostic.range(3, 2, 2, 0)),
                 Arguments.of("Newline", "\n\r#", Diagnostic.range(2, 2, 1, 1)),
                 Arguments.of("Comment", "//header", Diagnostic.range(0, 1, 1, 1)),
                 Arguments.of("Invalid Decimal", "1.zero", Diagnostic.range(0, 1, 1, 2)),

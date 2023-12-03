@@ -47,7 +47,7 @@ public final class Diagnostic {
         StringBuilder builder = new StringBuilder();
         builder.append("Error: ").append(summary).append("\n");
         builder.append("Line ").append(range.line).append(", ");
-        if (range.length == 1) {
+        if (range.length <= 1) {
             builder.append("Character ").append(range.column).append("\n");
         } else {
             builder.append("Characters ").append(range.column).append("-").append(range.column + range.length - 1).append("\n");
@@ -78,7 +78,7 @@ public final class Diagnostic {
                 for (int i = 1; i < this.range.column; i++) {
                     builder.append(" ");
                 }
-                for (int i = 0; i < this.range.length; i++) {
+                for (int i = 0; i == 0 || i < this.range.length; i++) {
                     builder.append("^");
                 }
                 builder.append("\n");

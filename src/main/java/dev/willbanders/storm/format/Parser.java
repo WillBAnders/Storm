@@ -55,7 +55,10 @@ public abstract class Parser<T extends Token.Type> {
 
     protected void require(boolean condition, Supplier<Diagnostic.Builder> supplier) throws ParseException {
         if (!condition) {
-            throw error(supplier.get().range((tokens.has(0) ? tokens.get(0) : tokens.get(-1)).getRange()));
+            Diagnostic.Range range = tokens.has(0) ? tokens.get(0).getRange() :
+                    tokens.has(-1) ? tokens.get(-1).getRange() :
+                    lexer.chars.getRange();
+            throw error(supplier.get().range(range));
         }
     }
 
@@ -78,7 +81,7 @@ public abstract class Parser<T extends Token.Type> {
                 while (index + offset >= tokens.size()) {
                     tokens.add(lexer.lexToken());
                 }
-                return tokens.get(index + offset) != null;
+                return index + offset >= 0 && tokens.get(index + offset) != null;
             } catch (ParseException e) {
                 throw (ParseException) new ParseException(Diagnostic.builder()
                         .input(e.getDiagnostic().getInput())
