@@ -14,11 +14,17 @@ public final class JsonLexer extends Lexer<JsonTokenType> {
 
     @Override
     public Token<JsonTokenType> lexToken() throws ParseException {
-        while (match("[ \n\r\t]")) {}
+        while (match("[ \n\r\t]")) {
+            if (chars.get(-1) == '\n' || chars.get(-1) == '\r') {
+                match(chars.get(-1) == '\n' ? '\r' : '\n');
+                chars.emit(JsonTokenType.OPERATOR);
+                chars.newline();
+            }
+        }
         chars.emit(JsonTokenType.OPERATOR);
         if (!chars.has(0)) {
             return null;
-        } else if (peek("[A-Za-z_]")) {
+        } else if (peek("[A-Za-z]")) {
             return lexIdentifier();
         } else if (peek("[0-9]") || peek('-', "[0-9]")) {
             return lexNumber();

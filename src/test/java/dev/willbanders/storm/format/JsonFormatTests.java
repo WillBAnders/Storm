@@ -195,11 +195,6 @@ public class JsonFormatTests {
     @MethodSource
     void testDiagnosticRange(String test, String input, Diagnostic.Range range) {
         ParseException e = Assertions.assertThrows(ParseException.class, () -> JsonParser.parse(input));
-        System.out.println(e.getMessage());
-        System.out.println("Index: " + e.getDiagnostic().getRange().getIndex());
-        System.out.println("Line: " + e.getDiagnostic().getRange().getLine());
-        System.out.println("Column: " + e.getDiagnostic().getRange().getColumn());
-        System.out.println("Length: " + e.getDiagnostic().getRange().getLength());
         Assertions.assertAll(
                 () -> Assertions.assertEquals(range.getIndex(), e.getDiagnostic().getRange().getIndex()),
                 () -> Assertions.assertEquals(range.getLine(), e.getDiagnostic().getRange().getLine()),
@@ -210,6 +205,7 @@ public class JsonFormatTests {
 
     private static Stream<Arguments> testDiagnosticRange() {
         return Stream.of(
+                Arguments.of("Newline", "\n\r#", Diagnostic.range(2, 2, 1, 1)),
                 Arguments.of("Comment", "//header", Diagnostic.range(0, 1, 1, 1)),
                 Arguments.of("Invalid Decimal", "1.zero", Diagnostic.range(0, 1, 1, 2)),
                 Arguments.of("Invalid Exponent", "1ee7", Diagnostic.range(0, 1, 1, 2)),
