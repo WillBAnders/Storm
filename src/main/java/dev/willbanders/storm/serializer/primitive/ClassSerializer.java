@@ -14,6 +14,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -59,9 +60,9 @@ public class ClassSerializer<T> implements Serializer<T> {
         Preconditions.checkArgument(clazz.getDeclaredAnnotation(Storm.Serialized.class) != null, "Missing @Storm.Serialized annotation for class %s.", clazz.getName());
         Method deserialize = getMethod(clazz, clazz, "deserialize", Node.class).orElse(null);
         if (deserialize == null) {
-            Map<String, Field> fields = Arrays.stream(clazz.getDeclaredFields())
+            LinkedHashMap<String, Field> fields = Arrays.stream(clazz.getDeclaredFields())
                     .peek(f -> f.setAccessible(true))
-                    .collect(Collectors.toMap(Field::getName, f -> f));
+                    .collect(Collectors.toMap(Field::getName, f -> f, (f1, f2) -> { throw new AssertionError(); }, Maps::newLinkedHashMap));
             Constructor<T> constructor = getConstructor(clazz)
                     .orElseGet(() -> getConstructor(clazz, fields.values().stream()
                             .map(Field::getType)
@@ -98,10 +99,10 @@ public class ClassSerializer<T> implements Serializer<T> {
 
     private static final class Fields<T> extends ClassSerializer<T> {
 
-        private final Map<String, Field> fields;
+        private final LinkedHashMap<String, Field> fields;
         private final Constructor<T> constructor;
 
-        private Fields(Class<T> clazz, Map<String, Field> fields, Constructor<T> constructor) {
+        private Fields(Class<T> clazz, LinkedHashMap<String, Field> fields, Constructor<T> constructor) {
             super(clazz);
             this.fields = fields;
             this.constructor = constructor;
